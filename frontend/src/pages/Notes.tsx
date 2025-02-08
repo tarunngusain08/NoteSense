@@ -3,19 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import noteService, { Note, CreateNoteRequest } from '../services/noteService';
+import type { NodeJS } from '@types/node';
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: Date;
-  emoji: string;
-  categories: string[];
-}
+
 
 const noteEmojis = ['📝', '✍️', '📚', '💭', '💡', '🎯', '📌', '🌟', '✨', '📖'];
 const defaultCategories = ['Personal 👤', 'Work 💼', 'Ideas 💭', 'Tasks 📋', 'Study 📚'];
+
+// Debounce function
+const debounce = (func: Function, wait: number) => {
+  let timeout: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 export default function Notes() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -31,66 +34,81 @@ export default function Notes() {
   useEffect(() => {
     const fetchNotes = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/notes');
-        setNotes(response.data);
+        setIsLoading(true);
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          navigate('/login');
+          return;
+        }
+        const fetchedNotes = await noteService.getUserNotes(userId);
+        setNotes(fetchedNotes);
       } catch (error) {
         console.error('Error fetching notes:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchNotes();
-  }, []);
+  }, [navigate]);
 
   const handleCreateNote = async () => {
-    const randomEmoji = noteEmojis[Math.floor(Math.random() * noteEmojis.length)];
-    const newNote = {
-      title: 'Untitled Note',
-      content: '',
-      emoji: randomEmoji,
-      categories: [],
-    };
-
     try {
-      const response = await axios.post('http://localhost:8080/notes', newNote);
-      setNotes([response.data, ...notes]);
+      const randomEmoji = noteEmojis[Math.floor(Math.random() * noteEmojis.length)];
+      const newNoteData: CreateNoteRequest = {
+        title: 'Untitled Note',
+        content: '',
+        emoji: randomEmoji,
+        categories: [],
+      };
+
+      const createdNote = await noteService.createNote(newNoteData);
+      setNotes([createdNote, ...notes]);
     } catch (error) {
       console.error('Error creating note:', error);
     }
   };
 
-  const handleDeleteNote = (id: string) => {
-    const noteElement = document.getElementById(`note-${id}`);
-    if (noteElement) {
-      noteElement.style.transform = 'scale(0.8)';
-      noteElement.style.opacity = '0';
+  const handleDeleteNote = async (id: string) => {
+    try {
+      const noteElement = document.getElementById(`note-${id}`);
+      if (noteElement) {
+        noteElement.style.transform = 'scale(0.8)';
+        noteElement.style.opacity = '0';
+      }
+      await noteService.deleteNote(id);
+      setTimeout(() => {
+        setNotes(notes.filter(note => note.id !== id));
+      }, 300);
+    } catch (error) {
+      console.error('Error deleting note:', error);
     }
-    setTimeout(() => {
-      setNotes(notes.filter(note => note.id !== id));
-    }, 300);
   };
 
-  const handleAddCategory = (noteId: string, category: string) => {
-    setNotes(notes.map(note => {
-      if (note.id === noteId && !note.categories.includes(category)) {
-        return {
-          ...note,
-          categories: [...note.categories, category]
-        };
+  const handleAddCategory = async (noteId: string, category: string) => {
+    try {
+      const note = notes.find(n => n.id === noteId);
+      if (note && !note.categories.includes(category)) {
+        const updatedCategories = [...note.categories, category];
+        const updatedNote = await noteService.updateNote(noteId, { categories: updatedCategories });
+        setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
       }
-      return note;
-    }));
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
   };
 
-  const handleRemoveCategory = (noteId: string, category: string) => {
-    setNotes(notes.map(note => {
-      if (note.id === noteId) {
-        return {
-          ...note,
-          categories: note.categories.filter(c => c !== category)
-        };
+  const handleRemoveCategory = async (noteId: string, category: string) => {
+    try {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        const updatedCategories = note.categories.filter(c => c !== category);
+        const updatedNote = await noteService.updateNote(noteId, { categories: updatedCategories });
+        setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
       }
-      return note;
-    }));
+    } catch (error) {
+      console.error('Error removing category:', error);
+    }
   };
 
   const handleAddNewCategory = () => {
@@ -101,16 +119,31 @@ export default function Notes() {
     }
   };
 
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = 
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategories = 
-      selectedCategories.length === 0 ||
-      selectedCategories.some(cat => note.categories.includes(cat));
+  useEffect(() => {
+    const searchNotes = async () => {
+      try {
+        if (searchQuery.trim()) {
+          const searchResults = await noteService.searchNotes(searchQuery);
+          setNotes(searchResults);
+        } else {
+          const userId = localStorage.getItem('userId');
+          if (userId) {
+            const allNotes = await noteService.getUserNotes(userId);
+            setNotes(allNotes);
+          }
+        }
+      } catch (error) {
+        console.error('Error searching notes:', error);
+      }
+    };
 
-    return matchesSearch && matchesCategories;
+    const debounceTimeout = setTimeout(searchNotes, 300);
+    return () => clearTimeout(debounceTimeout);
+  }, [searchQuery]);
+
+  const filteredNotes = notes.filter(note => {
+    return selectedCategories.length === 0 ||
+      selectedCategories.some(cat => note.categories.includes(cat));
   });
 
   const handleLogout = () => {
@@ -316,13 +349,18 @@ export default function Notes() {
                     <input
                       type="text"
                       value={note.title}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
                         setNotes(
                           notes.map((n) =>
-                            n.id === note.id ? { ...n, title: e.target.value } : n
+                            n.id === note.id ? { ...n, title: newTitle } : n
                           )
-                        )
-                      }
+                        );
+                        debounce(
+                          () => noteService.updateNote(note.id, { title: newTitle }),
+                          500
+                        )();
+                      }}
                       className="text-lg font-semibold w-full border-none focus:ring-0 p-0 bg-transparent"
                       placeholder="Untitled Note"
                     />
@@ -339,13 +377,18 @@ export default function Notes() {
 
                 <textarea
                   value={note.content}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const newContent = e.target.value;
                     setNotes(
                       notes.map((n) =>
-                        n.id === note.id ? { ...n, content: e.target.value } : n
+                        n.id === note.id ? { ...n, content: newContent } : n
                       )
-                    )
-                  }
+                    );
+                    debounce(
+                      () => noteService.updateNote(note.id, { content: newContent }),
+                      500
+                    )();
+                  }}
                   className="w-full h-32 resize-none border-none focus:ring-0 p-0 bg-transparent"
                   placeholder="Start writing..."
                 />

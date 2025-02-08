@@ -73,9 +73,23 @@ func main() {
 	r.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
 	r.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 
-	// Enable CORS
+	// Enable CORS with more permissive settings
+	corsHandler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	)
+
 	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", handlers.CORS()(r)); err != nil {
+	log.Println("Routes:")
+	log.Println("  POST /signup")
+	log.Println("  POST /login")
+	log.Println("  POST /notes")
+	log.Println("  GET /notes")
+	log.Println("  PUT /notes/{id}")
+	log.Println("  DELETE /notes/{id}")
+
+	if err := http.ListenAndServe(":8080", corsHandler(r)); err != nil {
 		log.Fatal("Error starting server:", err)
 	}
 }
