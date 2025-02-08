@@ -4,10 +4,12 @@ import (
 	"NoteSense/contracts"
 	"NoteSense/models"
 	"NoteSense/repositories"
+	"NoteSense/utils"
 	"context"
 	"fmt"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserService holds the user repository
@@ -27,11 +29,17 @@ func (s *UserService) SignUp(email, password, name string) (*contracts.SignUpRes
 		return nil, fmt.Errorf("email and password are required")
 	}
 
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("error hashing password: %v", err)
+	}
+
 	// Create user model
 	user := models.User{
 		ID:       uuid.New(),
 		Email:    email,
-		Password: password, // TODO: Add password hashing
+		Password: string(hashedPassword),
 		Name:     name,
 	}
 
@@ -40,12 +48,15 @@ func (s *UserService) SignUp(email, password, name string) (*contracts.SignUpRes
 		return nil, err
 	}
 
-	// Generate token (using a simple placeholder for now)
-	token := "token" // Replace with proper JWT token generation
+	// Generate token
+	tokenDetails, err := utils.GenerateTokenPair(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error generating tokens: %v", err)
+	}
 
 	// Return response with token and user data
 	return &contracts.SignUpResponse{
-		Token: token,
+		Token: tokenDetails.AccessToken,
 		User:  user,
 	}, nil
 }
@@ -63,17 +74,20 @@ func (s *UserService) Login(email, password string) (*contracts.LoginResponse, e
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	// Check password (simple comparison for now, replace with proper hashing)
-	if existingUser.Password != password {
+	// Check password
+	if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(password)); err != nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	// Generate token (using a simple placeholder for now)
-	token := "token" // Replace with proper JWT token generation
+	// Generate token
+	tokenDetails, err := utils.GenerateTokenPair(existingUser.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error generating tokens: %v", err)
+	}
 
 	// Return response with token and user data
 	return &contracts.LoginResponse{
-		Token: token,
+		Token: tokenDetails.AccessToken,
 		User:  *existingUser,
 	}, nil
 }
