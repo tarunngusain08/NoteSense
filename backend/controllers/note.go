@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -62,11 +63,12 @@ func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	// Get note ID from URL
 	vars := mux.Vars(r)
-	noteID := vars["id"]
-	if noteID == "" {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID format", http.StatusBadRequest)
 		return
 	}
+
 
 	// Decode request body
 	var req contracts.NoteRequest
@@ -92,10 +94,18 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) {
 	// Get note ID from URL
 	vars := mux.Vars(r)
-	noteID := vars["id"]
-	
-	// Get user ID from context (assuming you have middleware that sets this)
-	userID := r.Context().Value("userID").(string)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Get user ID from context (assuming middleware sets this)
+	userID, ok := r.Context().Value("userID").(string)
+	if !ok || userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// Delete note
 	if err := h.NoteService.DeleteNote(noteID, userID); err != nil {
@@ -106,3 +116,4 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	// Return success
 	w.WriteHeader(http.StatusNoContent)
 }
+

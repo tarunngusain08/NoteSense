@@ -6,6 +6,8 @@ import (
 
 	"NoteSense/models"
 	"NoteSense/repositories"
+
+	"github.com/google/uuid"
 )
 
 // NoteService handles note-related operations
@@ -30,6 +32,7 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 
 	// Create note model
 	note := &models.Note{
+		ID:        uuid.New(),
 		Title:      title,
 		Content:    content,
 		Categories: categories,
@@ -56,10 +59,11 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
-func (s *NoteService) UpdateNote(noteID string, title, content string, categories []string) (*models.Note, error) {
+func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, categories []string) (*models.Note, error) {
 	// Validate input
 	if title == "" {
 		return nil, fmt.Errorf("title cannot be empty")
+
 	}
 
 	// Retrieve existing note to get UserID and set the ID
@@ -67,7 +71,6 @@ func (s *NoteService) UpdateNote(noteID string, title, content string, categorie
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
-
 	updateData := models.Note{
 		ID:         noteID,
 		UserID:     existingNote.UserID,
@@ -92,9 +95,9 @@ func (s *NoteService) UpdateNote(noteID string, title, content string, categorie
 }
 
 // DeleteNote deletes a note by its ID
-func (s *NoteService) DeleteNote(noteID string, userID string) error {
+func (s *NoteService) DeleteNote(noteID uuid.UUID, userID string) error {
 	// Validate input
-	if noteID == "" {
+	if noteID == uuid.Nil {
 		return fmt.Errorf("invalid note ID")
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"NoteSense/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -39,17 +40,18 @@ func (r *NoteRepository) Update(ctx context.Context, note *models.Note) error {
 	return nil
 }
 
-func (r *NoteRepository) Delete(ctx context.Context, id string, userID string) error {
+func (r *NoteRepository) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	if err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, userID).Delete(&models.Note{}).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *NoteRepository) GetByID(ctx context.Context, noteID string, userID string) (*models.Note, error) {
+func (r *NoteRepository) GetByID(ctx context.Context, noteID uuid.UUID, userID string) (*models.Note, error) {
 	var note models.Note
-	result := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", noteID, userID).First(&note)
+	result := r.db.WithContext(ctx).Where("id = ?", noteID).First(&note)
 	if result.Error != nil {
+
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
