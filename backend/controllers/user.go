@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"NoteSense/services" // Adjust the import path
+	"NoteSense/contracts"
+	"NoteSense/services"
 	"encoding/json"
 	"net/http"
 )
@@ -13,8 +14,16 @@ type UserHandler struct {
 
 // SignUpHandler handles user sign up
 func (h *UserHandler) SignUpHandler(w http.ResponseWriter, r *http.Request) {
+	// Decode request body
+	var req contracts.UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	// Call the user service to handle sign up
-	resp, err := h.UserService.SignUp(r)
+	resp, err := h.UserService.SignUp(req.Email, req.Password, req.Name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -28,8 +37,16 @@ func (h *UserHandler) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 
 // LoginHandler handles user login
 func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// Decode request body
+	var req contracts.UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	// Call the user service to handle login
-	resp, err := h.UserService.Login(r)
+	resp, err := h.UserService.Login(req.Email, req.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return

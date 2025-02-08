@@ -1,12 +1,13 @@
 package services
 
 import (
+	"NoteSense/contracts"
 	"NoteSense/models"
 	"NoteSense/repositories"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
+
+	"github.com/google/uuid"
 )
 
 // UserService holds the user repository
@@ -19,22 +20,19 @@ func NewUserService(repo *repositories.UserRepository) *UserService {
 	return &UserService{UserRepo: repo}
 }
 
-// SignUpResponse represents the response for signup
-type SignUpResponse struct {
-	Token string      `json:"token"`
-	User  models.User `json:"user"`
-}
-
 // SignUp handles user registration logic
-func (s *UserService) SignUp(r *http.Request) (*SignUpResponse, error) {
-	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		return nil, err
+func (s *UserService) SignUp(email, password, name string) (*contracts.SignUpResponse, error) {
+	// Validate user data
+	if email == "" || password == "" {
+		return nil, fmt.Errorf("email and password are required")
 	}
 
-	// Validate user data
-	if user.Email == "" || user.Password == "" || user.Name == "" {
-		return nil, fmt.Errorf("email, password, and name are required")
+	// Create user model
+	user := models.User{
+		ID:       uuid.New(),
+		Email:    email,
+		Password: password, // TODO: Add password hashing
+		Name:     name,
 	}
 
 	// Create the user
@@ -46,31 +44,27 @@ func (s *UserService) SignUp(r *http.Request) (*SignUpResponse, error) {
 	token := "token" // Replace with proper JWT token generation
 
 	// Return response with token and user data
-	return &SignUpResponse{
+	return &contracts.SignUpResponse{
 		Token: token,
 		User:  user,
 	}, nil
 }
 
-// LoginResponse represents the response for login
-type LoginResponse struct {
-	Token string      `json:"token"`
-	User  models.User `json:"user"`
-}
-
 // Login handles user login logic
-func (s *UserService) Login(r *http.Request) (*LoginResponse, error) {
-	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		return nil, err
+func (s *UserService) Login(email, password string) (*contracts.LoginResponse, error) {
+	// Validate input
+	if email == "" || password == "" {
+		return nil, fmt.Errorf("email and password are required")
 	}
 
-	existingUser, err := s.UserRepo.GetByEmail(context.Background(), user.Email)
+	// Find user by email
+	existingUser, err := s.UserRepo.GetByEmail(context.Background(), email)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	if existingUser.Password != user.Password { // Add proper password hashing later
+	// Check password (simple comparison for now, replace with proper hashing)
+	if existingUser.Password != password {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
@@ -78,7 +72,7 @@ func (s *UserService) Login(r *http.Request) (*LoginResponse, error) {
 	token := "token" // Replace with proper JWT token generation
 
 	// Return response with token and user data
-	return &LoginResponse{
+	return &contracts.LoginResponse{
 		Token: token,
 		User:  *existingUser,
 	}, nil

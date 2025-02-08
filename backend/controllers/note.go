@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"NoteSense/contracts"
+	"NoteSense/services"
+	"encoding/json"
 	"net/http"
 
-	"NoteSense/services" // Adjust the import path
+	"github.com/gorilla/mux"
 )
 
 // NoteHandler holds the note service
@@ -13,40 +16,93 @@ type NoteHandler struct {
 
 // CreateNoteHandler handles creating a new note
 func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) {
-	err := h.NoteService.CreateNote(r)
+	// Decode request body
+	var req contracts.NoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Create note
+	note, err := h.NoteService.CreateNote(req.Title, req.Content, req.Categories, req.UserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Return created note
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
-// GetNoteHandler handles retrieving a note
+// GetNoteHandler handles retrieving notes
 func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
-	note, err := h.NoteService.GetNote(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	// Extract user ID from query params
+	userID := r.URL.Query().Get("userId")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte(note))
+
+	// Get notes
+	notes, err := h.NoteService.GetNotesByUserID(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return notes
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contracts.NotesResponse{Notes: notes})
 }
 
 // UpdateNoteHandler handles updating a note
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
-	err := h.NoteService.UpdateNote(r)
+	// Get note ID from URL
+	vars := mux.Vars(r)
+	noteID := vars["id"]
+	if noteID == "" {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Decode request body
+	var req contracts.NoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Update note
+	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	// Return updated note
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
 // DeleteNoteHandler handles deleting a note
 func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) {
-	err := h.NoteService.DeleteNote(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	// Get note ID from URL
+	vars := mux.Vars(r)
+	noteID := vars["id"]
+	
+	// Get user ID from context (assuming you have middleware that sets this)
+	userID := r.Context().Value("userID").(string)
+
+	// Delete note
+	if err := h.NoteService.DeleteNote(noteID, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Return success
 	w.WriteHeader(http.StatusNoContent)
 }
