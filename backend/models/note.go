@@ -10,7 +10,7 @@ import (
 
 type Note struct {
 	ID         uuid.UUID    `gorm:"primaryKey" json:"id"`
-	UserID     string    `json:"userId"`
+	UserID     uuid.UUID    `json:"userId"`
 	Title      string    `json:"title"`
 	Content    string    `json:"content"`
 	Emoji      string    `json:"emoji"`

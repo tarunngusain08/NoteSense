@@ -21,14 +21,15 @@ func NewNoteService(repo *repositories.NoteRepository) *NoteService {
 }
 
 // CreateNote creates a new note
-func (s *NoteService) CreateNote(title, content string, categories []string, userID string) (*models.Note, error) {
+func (s *NoteService) CreateNote(title, content string, categories []string, userID uuid.UUID) (*models.Note, error) {
 	// Validate input
 	if title == "" {
 		return nil, fmt.Errorf("title is required")
 	}
-	if userID == "" {
+	if userID == uuid.Nil {
 		return nil, fmt.Errorf("user ID is required")
 	}
+
 
 	// Create note model
 	note := &models.Note{
@@ -59,7 +60,7 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
-func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, categories []string) (*models.Note, error) {
+func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, categories []string  , userID uuid.UUID) (*models.Note, error) {
 	// Validate input
 	if title == "" {
 		return nil, fmt.Errorf("title cannot be empty")
@@ -67,7 +68,7 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, catego
 	}
 
 	// Retrieve existing note to get UserID and set the ID
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, "")
+	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
@@ -84,9 +85,8 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, catego
 	if err != nil {
 		return nil, fmt.Errorf("failed to update note: %v", err)
 	}
-
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, "")
+	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
@@ -95,10 +95,11 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, catego
 }
 
 // DeleteNote deletes a note by its ID
-func (s *NoteService) DeleteNote(noteID uuid.UUID, userID string) error {
+func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	// Validate input
 	if noteID == uuid.Nil {
 		return fmt.Errorf("invalid note ID")
+
 	}
 
 	// First, retrieve the note to return

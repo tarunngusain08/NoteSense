@@ -4,8 +4,12 @@ import (
 	"NoteSense/contracts"
 	"NoteSense/services"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
@@ -17,6 +21,12 @@ type NoteHandler struct {
 
 // CreateNoteHandler handles creating a new note
 func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) {
+
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// Decode request body
 	var req contracts.NoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -24,9 +34,8 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	defer r.Body.Close()
-
 	// Create note
-	note, err := h.NoteService.CreateNote(req.Title, req.Content, req.Categories, req.UserID)
+	note, err := h.NoteService.CreateNote(req.Title, req.Content, req.Categories, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -69,6 +78,7 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	
 
 	// Decode request body
 	var req contracts.NoteRequest
@@ -77,9 +87,15 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	defer r.Body.Close()
+	// Parse userID from string to UUID
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		return
+	}
 
 	// Update note
-	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories)
+	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -101,9 +117,16 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get user ID from context (assuming middleware sets this)
-	userID, ok := r.Context().Value("userID").(string)
-	if !ok || userID == "" {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok || userIDStr == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Convert userID string to UUID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID format", http.StatusUnauthorized)
 		return
 	}
 
@@ -116,4 +139,38 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	// Return success
 	w.WriteHeader(http.StatusNoContent)
 }
+
+
+func extractUserID(r *http.Request) (uuid.UUID, error) {
+	tokenString := r.Header.Get("Authorization")
+	if tokenString == "" {
+		return uuid.Nil, fmt.Errorf("missing Authorization token")
+	}
+
+	// Remove "Bearer " prefix
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	// Parse JWT token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		secretKey := os.Getenv("JWT_SECRET_KEY")
+		if secretKey == "" {
+			return nil, fmt.Errorf("JWT_SECRET_KEY not set")
+		}
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid token")
+	}
+
+	// Extract claims
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userIDStr, exists := claims["user_id"].(string)
+		if !exists {
+			return uuid.Nil, fmt.Errorf("user_id not found in token")
+		}
+		return uuid.Parse(userIDStr)
+	}
+
+	return uuid.Nil, fmt.Errorf("invalid token")
+}
+
 
