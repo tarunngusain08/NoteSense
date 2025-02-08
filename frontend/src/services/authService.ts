@@ -32,20 +32,20 @@ const authService = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post(`/login`, credentials);
     return {
-      token: response.data,
-      userId: credentials.email, // Using email as userId for now
-      name: credentials.email.split('@')[0], // Using part of email as name
-      email: credentials.email
+      token: response.data.token,
+      userId: response.data.user.id,
+      name: response.data.user.name,
+      email: response.data.user.email
     };
   },
 
   signup: async (userData: SignupRequest): Promise<AuthResponse> => {
     const response = await api.post(`/signup`, userData);
     return {
-      token: response.data,
-      userId: userData.email,
-      name: userData.name,
-      email: userData.email
+      token: response.data.token,
+      userId: response.data.user.id,
+      name: response.data.user.name,
+      email: response.data.user.email
     };
   },
 

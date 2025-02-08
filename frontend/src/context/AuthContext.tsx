@@ -50,6 +50,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login({ email, password });
+      
+      // Store authentication data in localStorage
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('userId', response.userId);
+      localStorage.setItem('name', response.name);
+      localStorage.setItem('email', response.email);
+      
+      // Set up axios interceptors with the token
+      authService.setupAxiosInterceptors(response.token);
+      
+      // Update authentication state
       setIsAuthenticated(true);
       setUser({
         userId: response.userId,

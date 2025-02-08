@@ -49,24 +49,15 @@ export default function Login() {
       if (isLogin) {
         // Sign in
         await login(email, password);
+        // Navigate to notes page after successful login
+        navigate('/notes');
       } else {
         // Sign up
-        if (!name.trim()) {
-          setError('Name is required');
-          return;
-        }
         await signup(email, password, name);
-      }
-
-      // Add exit animation before navigation
-      const element = document.querySelector('.form-container');
-      element?.classList.add('slide-out');
-      setTimeout(() => {
         navigate('/notes');
-      }, 500);
-    } catch (error: any) {
-      console.error('Authentication error:', error);
-      setError(error.response?.data?.message || 'Authentication failed. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'An error occurred during authentication');
     }
   };
 

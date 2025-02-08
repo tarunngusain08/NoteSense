@@ -4,6 +4,7 @@ import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import noteService, { Note, CreateNoteRequest } from '../services/noteService';
+import type { NodeJS } from '@types/node';
 
 
 
@@ -12,7 +13,7 @@ const defaultCategories = ['Personal 👤', 'Work 💼', 'Ideas 💭', 'Tasks �
 
 // Debounce function
 const debounce = (func: Function, wait: number) => {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   return (...args: any[]) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
