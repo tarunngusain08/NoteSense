@@ -16,7 +16,7 @@ type TokenBlacklist struct {
 
 func (tb *TokenBlacklist) BeforeCreate(tx *gorm.DB) (err error) {
 	if tb.ID == 0 {
-		tb.ID = uuid.New().ID()
+		tb.ID = uint(uuid.New().ID())
 	}
 	return
 }
