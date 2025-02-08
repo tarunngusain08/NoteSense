@@ -29,6 +29,8 @@ export interface AuthResponse {
 }
 
 const authService = {
+  interceptorId: null as number | null,
+
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post(`/login`, credentials);
     return {
@@ -69,7 +71,9 @@ const authService = {
 
   setupAxiosInterceptors(token: string) {
     // Remove any existing interceptors to prevent duplicates
-    api.interceptors.request.eject(this.interceptorId);
+    if (this.interceptorId !== null) {
+      api.interceptors.request.eject(this.interceptorId);
+    }
 
     // Add a request interceptor to add the token to every request
     this.interceptorId = api.interceptors.request.use(
