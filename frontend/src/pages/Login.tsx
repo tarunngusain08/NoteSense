@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { StickyNote, BookOpen, PenTool, BookMarked, NotebookPen } from 'lucide-react';
-import axios from 'axios';
+import authService from '../services/authService';
 
 const backgrounds = [
   'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80', // Notebook and coffee
@@ -19,6 +19,8 @@ export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const [currentBg, setCurrentBg] = useState(0);
   const [currentIcon, setCurrentIcon] = useState(0);
   const { login, signup } = useAuth();
@@ -41,33 +43,30 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     try {
       if (isLogin) {
         // Sign in
-        const response = await axios.post('http://localhost:8080/login', {
-          email,
-          password,
-        });
-        // Assuming the response contains a token or user info
-        console.log('Login successful:', response.data);
-        await login(email, password); // Update your context state
+        await login(email, password);
       } else {
         // Sign up
-        const response = await axios.post('http://localhost:8080/signup', {
-          email,
-          password,
-        });
-        console.log('Signup successful:', response.data);
-        await signup(email, password); // Update your context state
+        if (!name.trim()) {
+          setError('Name is required');
+          return;
+        }
+        await signup(email, password, name);
       }
+
       // Add exit animation before navigation
       const element = document.querySelector('.form-container');
       element?.classList.add('slide-out');
       setTimeout(() => {
         navigate('/notes');
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Authentication error:', error);
+      setError(error.response?.data?.message || 'Authentication failed. Please try again.');
     }
   };
 
@@ -132,7 +131,35 @@ export default function Login() {
         >
           {isLogin ? '✨ Welcome back! 📝' : '🌟 Create an account 📚'}
         </motion.h2>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm"
+          >
+            ❌ {error}
+          </motion.div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {!isLogin && (
+            <motion.div
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                👤 Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                placeholder="Enter your name"
+                required={!isLogin}
+              />
+            </motion.div>
+          )}
           <motion.div
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
