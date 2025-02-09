@@ -2,17 +2,21 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
 type Note struct {
-	ID         string    `gorm:"primaryKey" json:"id"`
-	UserID     string    `json:"userId"`
+	ID         uuid.UUID    `gorm:"primaryKey" json:"id"`
+	UserID     uuid.UUID    `json:"userId"`
 	Title      string    `json:"title"`
 	Content    string    `json:"content"`
 	Emoji      string    `json:"emoji"`
-	Categories []string  `gorm:"type:text[]" json:"categories"`
+	Categories pq.StringArray `gorm:"type:text[]" json:"categories"`
 	CreatedAt  time.Time `json:"createdAt"`
+
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 

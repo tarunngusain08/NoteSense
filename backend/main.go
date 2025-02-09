@@ -77,10 +77,12 @@ func main() {
 	r.HandleFunc("/logout", userHandler.LogoutHandler).Methods("POST")
 
 	// Note routes
-	r.HandleFunc("/notes", noteHandler.CreateNoteHandler).Methods("POST")
-	r.HandleFunc("/notes", noteHandler.GetNoteHandler).Methods("GET")
-	r.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
-	r.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+	r.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
+	r.HandleFunc("/api/notes", noteHandler.GetNoteHandler).Methods("GET")
+	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
+	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+
+
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(

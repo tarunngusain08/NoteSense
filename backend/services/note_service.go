@@ -6,6 +6,8 @@ import (
 
 	"NoteSense/models"
 	"NoteSense/repositories"
+
+	"github.com/google/uuid"
 )
 
 // NoteService handles note-related operations
@@ -19,17 +21,19 @@ func NewNoteService(repo *repositories.NoteRepository) *NoteService {
 }
 
 // CreateNote creates a new note
-func (s *NoteService) CreateNote(title, content string, categories []string, userID string) (*models.Note, error) {
+func (s *NoteService) CreateNote(title, content string, categories []string, userID uuid.UUID) (*models.Note, error) {
 	// Validate input
 	if title == "" {
 		return nil, fmt.Errorf("title is required")
 	}
-	if userID == "" {
+	if userID == uuid.Nil {
 		return nil, fmt.Errorf("user ID is required")
 	}
 
+
 	// Create note model
 	note := &models.Note{
+		ID:        uuid.New(),
 		Title:      title,
 		Content:    content,
 		Categories: categories,
@@ -56,18 +60,18 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
-func (s *NoteService) UpdateNote(noteID string, title, content string, categories []string) (*models.Note, error) {
+func (s *NoteService) UpdateNote(noteID uuid.UUID, title, content string, categories []string  , userID uuid.UUID) (*models.Note, error) {
 	// Validate input
 	if title == "" {
 		return nil, fmt.Errorf("title cannot be empty")
+
 	}
 
 	// Retrieve existing note to get UserID and set the ID
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, "")
+	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
-
 	updateData := models.Note{
 		ID:         noteID,
 		UserID:     existingNote.UserID,
@@ -81,9 +85,8 @@ func (s *NoteService) UpdateNote(noteID string, title, content string, categorie
 	if err != nil {
 		return nil, fmt.Errorf("failed to update note: %v", err)
 	}
-
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, "")
+	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
@@ -92,10 +95,11 @@ func (s *NoteService) UpdateNote(noteID string, title, content string, categorie
 }
 
 // DeleteNote deletes a note by its ID
-func (s *NoteService) DeleteNote(noteID string, userID string) error {
+func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	// Validate input
-	if noteID == "" {
+	if noteID == uuid.Nil {
 		return fmt.Errorf("invalid note ID")
+
 	}
 
 	// First, retrieve the note to return
