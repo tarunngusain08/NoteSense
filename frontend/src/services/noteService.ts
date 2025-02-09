@@ -1,59 +1,60 @@
-import axios from 'axios';
-import authService from './authService';
+import axios from "axios"
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = "http://localhost:8080/api"
 
 // Create an axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-});
+})
 
 // Add auth token to requests if available
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token")
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`
   }
-  return config;
-});
+  return config
+})
 
 export interface Note {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  emoji: string;
-  categories: string[];
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  userId: string
+  title: string
+  content: string
+  emoji: string
+  categories: string[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateNoteRequest {
-  title: string;
-  content: string;
-  emoji: string;
-  categories: string[];
+  title: string
+  content: string
+  emoji: string
+  categories: string[]
 }
 
 export interface UpdateNoteRequest {
-  title?: string;
-  content?: string;
-  emoji?: string;
-  categories?: string[];
+  title?: string
+  content?: string
+  emoji?: string
+  categories?: string[]
 }
 
 const noteService = {
   // Get all notes for a user
-  getUserNotes: async (userId: string): Promise<Note[]> => {
+  getUserNotes: async (): Promise<Note[]> => {
     try {
-      const response = await noteService.api.get('/notes');
+      const response = await api.get('/notes');
       console.log('Get notes response:', response.data); // Debug log
-      if (!response.data) return [];
-      const notes = response.data.Notes || [];
+      
+      // Handle both possible response formats
+      const notes = response.data.notes || response.data.Notes || response.data || [];
       console.log('Parsed notes:', notes); // Debug log
+      
       return notes;
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -63,24 +64,33 @@ const noteService = {
 
   // Get a single note by ID
   getNoteById: async (noteId: string): Promise<Note> => {
-    const response = await noteService.api.get(`/notes/${noteId}`);
-    return response.data;
+    try {
+      const response = await noteService.api.get(`/notes/${noteId}`)
+      console.log("Get note by ID response:", response.data) // Debug log
+      if (!response.data || !response.data.Note) {
+        throw new Error("Invalid response format from get note by ID API")
+      }
+      return response.data.Note
+    } catch (error) {
+      console.error("Error fetching note by ID:", error)
+      throw error
+    }
   },
 
   // Create a new note
   createNote: async (note: CreateNoteRequest): Promise<Note> => {
     try {
-      const response = await noteService.api.post('/notes', note);
+      const response = await api.post('/notes', note);
       console.log('Create note response:', response.data); // Debug log
-      if (!response.data) {
-        throw new Error('No response data from create note API');
-      }
+      
       // Handle both possible response formats
-      const createdNote = response.data.Note || response.data;
+      const createdNote = response.data.note || response.data.Note || response.data;
       console.log('Created note:', createdNote); // Debug log
+      
       if (!createdNote || !createdNote.id) {
         throw new Error('Invalid note data in response');
       }
+      
       return createdNote;
     } catch (error) {
       console.error('Error creating note:', error);
@@ -91,11 +101,11 @@ const noteService = {
   // Update an existing note
   updateNote: async (noteId: string, note: UpdateNoteRequest): Promise<Note> => {
     try {
-      const response = await noteService.api.put(`/notes/${noteId}`, note);
-      if (!response.data || !response.data.Note) {
+      const response = await api.patch(`/notes/${noteId}`, note);
+      if (!response.data || !response.data.note) {
         throw new Error('Invalid response format from update note API');
       }
-      return response.data.Note;
+      return response.data.note;
     } catch (error) {
       console.error('Error updating note:', error);
       throw error;
@@ -105,22 +115,22 @@ const noteService = {
   // Delete a note
   deleteNote: async (noteId: string): Promise<void> => {
     try {
-      await noteService.api.delete(`/notes/${noteId}`);
+      await noteService.api.delete(`/notes/${noteId}`)
     } catch (error) {
-      console.error('Error deleting note:', error);
-      throw error;
+      console.error("Error deleting note:", error)
+      throw error
     }
   },
 
   // Search notes
   searchNotes: async (query: string): Promise<Note[]> => {
-    const response = await noteService.api.get('/notes/search', { 
-      params: { q: query } 
-    });
-    return response.data;
+    const response = await noteService.api.get("/notes/search", {
+      params: { q: query },
+    })
+    return response.data
   },
 
-  api: api
-};
+  api: api,
+}
 
-export default noteService;
+export default noteService
