@@ -35,7 +35,7 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 	// Create note
-	note, err := h.NoteService.CreateNote(req.Title, req.Content, req.Categories, userID)
+	note, err := h.NoteService.CreateNote(*req.Title, *req.Content, *req.Categories, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -50,7 +50,6 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 // GetNoteHandler handles retrieving notes
 func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 
-	
 	// Extract user ID from query params
 	userID, err := extractUserID(r)
 	if err != nil {
@@ -79,8 +78,6 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	
-
 	// Decode request body
 	var req contracts.NoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -88,12 +85,14 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	defer r.Body.Close()
+
 	// Parse userID from string to UUID
 	userID, err := extractUserID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	// Update note
 	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories, userID)
 	if err != nil {
@@ -103,6 +102,7 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 
 	// Return updated note
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
@@ -131,7 +131,6 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	// Return success
 	w.WriteHeader(http.StatusNoContent)
 }
-
 
 func extractUserID(r *http.Request) (uuid.UUID, error) {
 	tokenString := r.Header.Get("Authorization")
@@ -164,5 +163,3 @@ func extractUserID(r *http.Request) (uuid.UUID, error) {
 
 	return uuid.Nil, fmt.Errorf("invalid token")
 }
-
-

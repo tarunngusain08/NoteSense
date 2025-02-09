@@ -79,15 +79,13 @@ func main() {
 	// Note routes
 	r.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
 	r.HandleFunc("/api/notes", noteHandler.GetNoteHandler).Methods("GET")
-	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
+	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
-
-
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
 
@@ -98,7 +96,7 @@ func main() {
 	log.Println("  POST /logout")
 	log.Println("  POST /notes")
 	log.Println("  GET /notes")
-	log.Println("  PUT /notes/{id}")
+	log.Println("  PATCH /notes/{id}")
 	log.Println("  DELETE /notes/{id}")
 
 	if err := http.ListenAndServe(":8080", corsHandler(r)); err != nil {
