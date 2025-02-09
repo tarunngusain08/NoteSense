@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -62,11 +63,12 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*models.User, error) {
 			log.Println("invalid signing method")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte("your-secret-key"), nil // Use the same secret key as in utils.GenerateJWT
+		return []byte(os.Getenv("JWT_SECRET")), nil // Use the secret key from the environment
 	})
 
 	if err != nil {
 		log.Println("invalid token")
+		fmt.Println("invalid token: ", err.Error())
 		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 
@@ -99,7 +101,7 @@ func (m *AuthMiddleware) BlacklistToken(token string) error {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte("your-secret-key"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 
 	if err != nil {
