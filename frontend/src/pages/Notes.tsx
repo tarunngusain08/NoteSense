@@ -36,6 +36,7 @@ export default function Notes() {
   })
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null)
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState({})
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -513,40 +514,53 @@ export default function Notes() {
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              const dropdown = document.getElementById(`categories-${note.id}`)
-                              if (dropdown) {
-                                dropdown.classList.toggle("hidden")
-                              }
+                              setShowCategoryDropdown(prevState => ({
+                                ...prevState,
+                                [note.id]: !prevState[note.id]
+                              }));
                             }}
                             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-purple-600"
                           >
                             <Tag className="h-4 w-4" />
                             Add category
                           </motion.button>
-                          <div
-                            id={`categories-${note.id}`}
-                            className="hidden absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
-                          >
-                            <div className="py-1">
-                              {categories
-                                .filter((cat) => !note.categories.includes(cat))
-                                .map((category) => (
-                                  <button
-                                    key={category}
-                                    onClick={() => {
-                                      handleAddCategory(note.id, category)
-                                      const dropdown = document.getElementById(`categories-${note.id}`)
-                                      if (dropdown) {
-                                        dropdown.classList.add("hidden")
-                                      }
-                                    }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
-                                  >
-                                    {category}
-                                  </button>
-                                ))}
-                            </div>
-                          </div>
+                          <AnimatePresence>
+                            {showCategoryDropdown[note.id] && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                transition={{ 
+                                  type: "spring", 
+                                  stiffness: 300, 
+                                  damping: 20 
+                                }}
+                                className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                              >
+                                <div className="py-1">
+                                  {categories
+                                    .filter((cat) => !note.categories.includes(cat))
+                                    .map((category) => (
+                                      <motion.button
+                                        key={category}
+                                        whileHover={{ backgroundColor: "#f3e8ff" }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => {
+                                          handleAddCategory(note.id, category);
+                                          setShowCategoryDropdown(prevState => ({
+                                            ...prevState,
+                                            [note.id]: false
+                                          }));
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                                      >
+                                        {category}
+                                      </motion.button>
+                                    ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </motion.div>
