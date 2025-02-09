@@ -48,40 +48,79 @@ export interface UpdateNoteRequest {
 const noteService = {
   // Get all notes for a user
   getUserNotes: async (userId: string): Promise<Note[]> => {
-    const response = await authService.api.get(`/notes/user/${userId}`);
-    return response.data;
+    try {
+      const response = await noteService.api.get('/notes');
+      console.log('Get notes response:', response.data); // Debug log
+      if (!response.data) return [];
+      const notes = response.data.Notes || [];
+      console.log('Parsed notes:', notes); // Debug log
+      return notes;
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      throw error;
+    }
   },
 
   // Get a single note by ID
   getNoteById: async (noteId: string): Promise<Note> => {
-    const response = await authService.api.get(`/notes/${noteId}`);
+    const response = await noteService.api.get(`/notes/${noteId}`);
     return response.data;
   },
 
   // Create a new note
   createNote: async (note: CreateNoteRequest): Promise<Note> => {
-    const response = await authService.api.post('/notes', note);
-    return response.data;
+    try {
+      const response = await noteService.api.post('/notes', note);
+      console.log('Create note response:', response.data); // Debug log
+      if (!response.data) {
+        throw new Error('No response data from create note API');
+      }
+      // Handle both possible response formats
+      const createdNote = response.data.Note || response.data;
+      console.log('Created note:', createdNote); // Debug log
+      if (!createdNote || !createdNote.id) {
+        throw new Error('Invalid note data in response');
+      }
+      return createdNote;
+    } catch (error) {
+      console.error('Error creating note:', error);
+      throw error;
+    }
   },
 
   // Update an existing note
   updateNote: async (noteId: string, note: UpdateNoteRequest): Promise<Note> => {
-    const response = await authService.api.put(`/notes/${noteId}`, note);
-    return response.data;
+    try {
+      const response = await noteService.api.put(`/notes/${noteId}`, note);
+      if (!response.data || !response.data.Note) {
+        throw new Error('Invalid response format from update note API');
+      }
+      return response.data.Note;
+    } catch (error) {
+      console.error('Error updating note:', error);
+      throw error;
+    }
   },
 
   // Delete a note
   deleteNote: async (noteId: string): Promise<void> => {
-    await authService.api.delete(`/notes/${noteId}`);
+    try {
+      await noteService.api.delete(`/notes/${noteId}`);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      throw error;
+    }
   },
 
   // Search notes
   searchNotes: async (query: string): Promise<Note[]> => {
-    const response = await authService.api.get('/notes/search', { 
+    const response = await noteService.api.get('/notes/search', { 
       params: { q: query } 
     });
     return response.data;
-  }
+  },
+
+  api: api
 };
 
 export default noteService;

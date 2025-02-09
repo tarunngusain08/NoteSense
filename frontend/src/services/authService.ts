@@ -70,33 +70,32 @@ const authService = {
   },
 
   setupAxiosInterceptors(token: string) {
-    // Remove any existing interceptors to prevent duplicates
+    // Remove any existing interceptors
     if (this.interceptorId !== null) {
-      api.interceptors.request.eject(this.interceptorId);
+      this.api.interceptors.response.eject(this.interceptorId);
     }
 
-    // Add a request interceptor to add the token to every request
-    this.interceptorId = api.interceptors.request.use(
+    // Add token to headers for all requests
+    this.api.interceptors.request.use(
       (config) => {
-        // Only add Authorization header if token exists and request is to our API
-        if (token && config.url?.startsWith(API_BASE_URL)) {
-          config.headers['Authorization'] = `Bearer ${token}`;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
 
-    // Add a response interceptor to handle token expiration
-    api.interceptors.response.use(
+    // Interceptor to handle token expiration
+    this.interceptorId = this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // If the server responds with a 401 (Unauthorized), it might mean the token has expired
+        // Check if the error is due to token expiration
         if (error.response && error.response.status === 401) {
-          // Trigger logout or token refresh
+          // Clear authentication data
           this.clearAuthData();
+          
+          // Redirect to login page
           window.location.href = '/login';
         }
         return Promise.reject(error);
