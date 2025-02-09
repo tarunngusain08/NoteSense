@@ -511,7 +511,8 @@ export default function Notes() {
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               const dropdown = document.getElementById(`categories-${note.id}`)
                               if (dropdown) {
                                 dropdown.classList.toggle("hidden")
