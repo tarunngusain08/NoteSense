@@ -2,14 +2,52 @@ package controllers
 
 import (
 	"NoteSense/contracts"
+	"NoteSense/middleware"
 	"NoteSense/services"
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 // UserHandler holds the user service
 type UserHandler struct {
-	UserService *services.UserService
+	UserService          *services.UserService
+	AuthorizationService *middleware.AuthMiddleware
+}
+
+// LogoutHandler handles user logout
+func (h *UserHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	// Authenticate the user and get their token
+	_, err := h.AuthorizationService.Authenticate(r)
+	if err != nil {
+		http.Error(w, "Authentication failed", http.StatusUnauthorized)
+		return
+	}
+
+	// Get the token from the Authorization header
+	authHeader := r.Header.Get("Authorization")
+	tokenParts := strings.Split(authHeader, " ")
+	token := tokenParts[1]
+
+	// Blacklist the token
+	if err := h.AuthorizationService.BlacklistToken(token); err != nil {
+		http.Error(w, "Failed to logout", http.StatusInternalServerError)
+		return
+	}
+
+	// Clear the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Successfully logged out"})
 }
 
 // SignUpHandler handles user sign up

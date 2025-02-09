@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"             // Import GORM
 
 	"NoteSense/controllers"
+	"NoteSense/middleware"
 	"NoteSense/models" // Import models for migration
 	"NoteSense/repositories"
 	"NoteSense/services"
@@ -43,7 +44,7 @@ func main() {
 	log.Println("Database connection established")
 
 	// Automigrate the models
-	if err := db.AutoMigrate(&models.User{}, &models.Note{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}); err != nil {
 		log.Fatal("Error during migration:", err)
 	}
 	log.Println("Database migration completed")
@@ -51,13 +52,20 @@ func main() {
 	// Initialize repositories
 	userRepo := repositories.NewUserRepository(db)
 	noteRepo := repositories.NewNoteRepository(db)
+	tokenBlacklistRepo := repositories.NewTokenBlacklistRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	noteService := services.NewNoteService(noteRepo)
 
+	// Initialize middleware
+	authMiddleware := middleware.NewAuthMiddleware(userRepo, tokenBlacklistRepo)
+
 	// Initialize handlers
-	userHandler := &controllers.UserHandler{UserService: userService}
+	userHandler := &controllers.UserHandler{
+		UserService:          userService,
+		AuthorizationService: authMiddleware,
+	}
 	noteHandler := &controllers.NoteHandler{NoteService: noteService}
 
 	// Set up the router
@@ -66,12 +74,14 @@ func main() {
 	// User routes
 	r.HandleFunc("/signup", userHandler.SignUpHandler).Methods("POST")
 	r.HandleFunc("/login", userHandler.LoginHandler).Methods("POST")
+	r.HandleFunc("/logout", userHandler.LogoutHandler).Methods("POST")
 
 	// Note routes
 	r.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
 	r.HandleFunc("/api/notes", noteHandler.GetNoteHandler).Methods("GET")
 	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+
 
 
 	// Enable CORS with more permissive settings
@@ -85,6 +95,7 @@ func main() {
 	log.Println("Routes:")
 	log.Println("  POST /signup")
 	log.Println("  POST /login")
+	log.Println("  POST /logout")
 	log.Println("  POST /notes")
 	log.Println("  GET /notes")
 	log.Println("  PUT /notes/{id}")

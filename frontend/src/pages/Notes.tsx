@@ -4,7 +4,7 @@ import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import noteService, { Note, CreateNoteRequest } from '../services/noteService';
-import type { NodeJS } from '@types/node';
+// import type { NodeJS } from '@types/node';
 
 
 

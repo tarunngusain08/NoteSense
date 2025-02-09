@@ -29,6 +29,8 @@ export interface AuthResponse {
 }
 
 const authService = {
+  interceptorId: null as number | null,
+
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post(`/login`, credentials);
     return {
@@ -49,26 +51,61 @@ const authService = {
     };
   },
 
-  // Store auth data in localStorage
-  setAuthData: (authData: AuthResponse) => {
-    localStorage.setItem('token', authData.token);
-    localStorage.setItem('userId', authData.userId);
-    localStorage.setItem('name', authData.name);
-    localStorage.setItem('email', authData.email);
+  logout: async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      await api.post('/logout', {}, {
+        headers: { 
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+    }
   },
 
-  // Clear auth data from localStorage
-  clearAuthData: () => {
+  clearAuthData() {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('name');
     localStorage.removeItem('email');
   },
 
-  // Configure axios to use the auth token
-  setupAxiosInterceptors: (token: string) => {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
+  setupAxiosInterceptors(token: string) {
+    // Remove any existing interceptors to prevent duplicates
+    if (this.interceptorId !== null) {
+      api.interceptors.request.eject(this.interceptorId);
+    }
+
+    // Add a request interceptor to add the token to every request
+    this.interceptorId = api.interceptors.request.use(
+      (config) => {
+        // Only add Authorization header if token exists and request is to our API
+        if (token && config.url?.startsWith(API_BASE_URL)) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Add a response interceptor to handle token expiration
+    api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // If the server responds with a 401 (Unauthorized), it might mean the token has expired
+        if (error.response && error.response.status === 401) {
+          // Trigger logout or token refresh
+          this.clearAuthData();
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
+  },
+
+  // Expose the api for other services to use
+  api: api
 };
 
 export default authService;

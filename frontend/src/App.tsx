@@ -3,12 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AnimatePresence } from 'framer-motion';
 import Login from './pages/Login';
 import Notes from './pages/Notes';
-import { AuthProvider, useAuth } from './context/AuthContext';
-
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" />;
-}
+import Signup from './pages/Signup';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -16,16 +13,20 @@ function App() {
       <Router>
         <AnimatePresence mode="wait">
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/notes"
-              element={
-                <PrivateRoute>
-                  <Notes />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/notes" replace />} />
+            {/* Public Routes (only accessible when not logged in) */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+            </Route>
+
+            {/* Protected Routes (only accessible when logged in) */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/notes" element={<Notes />} />
+              {/* Add other protected routes here */}
+            </Route>
+
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/notes" replace />} />
           </Routes>
         </AnimatePresence>
       </Router>

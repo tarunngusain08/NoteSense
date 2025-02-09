@@ -49,15 +49,16 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 
 // GetNoteHandler handles retrieving notes
 func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
+
+	
 	// Extract user ID from query params
-	userID := r.URL.Query().Get("userId")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	// Get notes
-	notes, err := h.NoteService.GetNotesByUserID(userID)
+	notes, err := h.NoteService.GetNotesByUserID(userID.String())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -88,12 +89,11 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 	// Parse userID from string to UUID
-	userID, err := uuid.Parse(req.UserID)
+	userID, err := extractUserID(r)
 	if err != nil {
-		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	// Update note
 	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories, userID)
 	if err != nil {
@@ -116,17 +116,9 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Get user ID from context (assuming middleware sets this)
-	userIDStr, ok := r.Context().Value("userID").(string)
-	if !ok || userIDStr == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Convert userID string to UUID
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := extractUserID(r)
 	if err != nil {
-		http.Error(w, "Invalid user ID format", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -151,7 +143,7 @@ func extractUserID(r *http.Request) (uuid.UUID, error) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	// Parse JWT token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		secretKey := os.Getenv("JWT_SECRET_KEY")
+		secretKey := os.Getenv("JWT_SECRET")
 		if secretKey == "" {
 			return nil, fmt.Errorf("JWT_SECRET_KEY not set")
 		}
