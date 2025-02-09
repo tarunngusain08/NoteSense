@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import authService from '../services/authService';
 
 interface AuthContextType {
@@ -11,7 +12,8 @@ interface AuthContextType {
   } | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -45,6 +47,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
+    
+    // Set up token refresh interval
+    const refreshInterval = setInterval(() => {
+      if (isAuthenticated) {
+        refreshToken().catch(console.error);
+      }
+    }, 10 * 60 * 1000); // Refresh every 10 minutes
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -76,6 +87,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     try {
       const response = await authService.signup({ email, password, name });
+      
+      // Store authentication data in localStorage
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('userId', response.userId);
+      localStorage.setItem('name', response.name);
+      localStorage.setItem('email', response.email);
+      
+      // Set up axios interceptors with the token
+      authService.setupAxiosInterceptors(response.token);
+      
+      // Update authentication state
       setIsAuthenticated(true);
       setUser({
         userId: response.userId,
@@ -88,10 +110,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    authService.clearAuthData();
-    setIsAuthenticated(false);
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint to invalidate token
+      await authService.logout();
+      
+      // Clear authentication data
+      authService.clearAuthData();
+      
+      // Reset authentication state
+      setIsAuthenticated(false);
+      setUser(null);
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    }
+  };
+
+  const refreshToken = async () => {
+    try {
+      // Implement token refresh logic
+      // This would typically involve calling a backend refresh token endpoint
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await axios.post('/api/refresh-token', { refreshToken });
+      
+      // Update tokens in localStorage
+      localStorage.setItem('token', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      
+      // Update axios interceptors
+      authService.setupAxiosInterceptors(response.data.accessToken);
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // If refresh fails, log out the user
+      await logout();
+    }
   };
 
   if (isLoading) {
@@ -103,7 +163,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      isLoading, 
+      user, 
+      login, 
+      signup, 
+      logout,
+      refreshToken 
+    }}>
       {children}
     </AuthContext.Provider>
   );
