@@ -500,7 +500,10 @@ export default function Notes() {
                             >
                               {category}
                               <button
-                                onClick={() => handleRemoveCategory(note.id, category)}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent note modal from opening
+                                  handleRemoveCategory(note.id, category)
+                                }}
                                 className="hover:text-red-500"
                               >
                                 <X className="h-3 w-3" />
@@ -545,7 +548,8 @@ export default function Notes() {
                                         key={category}
                                         whileHover={{ backgroundColor: "#f3e8ff" }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Prevent note modal from opening
                                           handleAddCategory(note.id, category);
                                           setShowCategoryDropdown(prevState => ({
                                             ...prevState,
