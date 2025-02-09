@@ -44,7 +44,7 @@ func main() {
 	log.Println("Database connection established")
 
 	// Automigrate the models
-	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}, &models.File{}); err != nil {
 		log.Fatal("Error during migration:", err)
 	}
 	log.Println("Database migration completed")
@@ -53,10 +53,12 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	noteRepo := repositories.NewNoteRepository(db)
 	tokenBlacklistRepo := repositories.NewTokenBlacklistRepository(db)
+	fileRepo := repositories.NewFileRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	noteService := services.NewNoteService(noteRepo)
+	fileService := services.NewFileService(fileRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(userRepo, tokenBlacklistRepo)
@@ -67,6 +69,7 @@ func main() {
 		AuthorizationService: authMiddleware,
 	}
 	noteHandler := &controllers.NoteHandler{NoteService: noteService}
+	fileHandler := &controllers.FileHandler{FileService: fileService}
 
 	// Set up the router
 	r := mux.NewRouter()
@@ -82,7 +85,8 @@ func main() {
 	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 
-
+	// File routes
+	r.HandleFunc("/api/files", fileHandler.UploadFileHandler).Methods("POST")
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
@@ -100,6 +104,7 @@ func main() {
 	log.Println("  GET /notes")
 	log.Println("  PUT /notes/{id}")
 	log.Println("  DELETE /notes/{id}")
+	log.Println("  POST /files")
 
 	if err := http.ListenAndServe(":8080", corsHandler(r)); err != nil {
 		log.Fatal("Error starting server:", err)
