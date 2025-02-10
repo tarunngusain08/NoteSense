@@ -124,6 +124,10 @@ export default function Notes() {
         categories: [],
       })
 
+      // Refetch all notes to ensure the new note is visible
+      const fetchedNotes = await noteService.getUserNotes()
+      setNotes(fetchedNotes)
+
       // Set the current note ID and open the modal
       setCurrentNoteId(createdNote.id)
       setNewNote({
