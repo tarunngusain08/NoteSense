@@ -353,9 +353,39 @@ export default function Notes() {
     setShowNoteModal(true);
   };
 
+  const reloadNotes = async () => {
+    try {
+      setIsLoading(true)
+      const fetchedNotes = await noteService.getUserNotes()
+      setNotes(fetchedNotes)
+    } catch (error) {
+      console.error("Failed to reload notes:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleNoteModalClose = () => {
+    setShowNoteModal(false)
+    setSelectedNote(null)
+    reloadNotes() // Reload notes when modal is closed
+  }
+
+  const handleNewNoteModalClose = () => {
+    setShowNewNoteModal(false)
+    setNewNote({
+      title: "",
+      content: "",
+      emoji: noteEmojis[0],
+      categories: [],
+    })
+    reloadNotes() // Reload notes when new note modal is closed
+  }
+
   const closeNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
+    reloadNotes(); // Reload notes when modal is closed
   };
 
   // Enhanced Note Detail Modal Variants
@@ -766,7 +796,7 @@ export default function Notes() {
                 exit="exit"
                 variants={overlayVariants}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
-                onClick={closeNoteModal}
+                onClick={handleNoteModalClose}
               >
                 <motion.div
                   variants={noteDetailModalVariants}
@@ -856,7 +886,7 @@ export default function Notes() {
           {/* New Note Modal */}
           {(showNewNoteModal || currentNoteId) && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="fixed inset-0" onClick={handleCloseNewNoteModal} />
+              <div className="fixed inset-0" onClick={handleNewNoteModalClose} />
               <div
                 className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden z-10"
                 onClick={(e) => e.stopPropagation()}
