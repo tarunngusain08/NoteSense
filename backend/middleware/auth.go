@@ -49,11 +49,11 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*models.User, error) {
 	// Check if token is blacklisted
 	isBlacklisted, err := m.TokenBlacklistRepo.IsTokenBlacklisted(r.Context(), tokenString)
 	if err != nil {
-		log.Println("error checking token blacklist")
-		return nil, fmt.Errorf("error checking token blacklist: %v", err)
+		log.Printf("Error checking token blacklist: %v", err)
+		return nil, fmt.Errorf("error checking token blacklist: %w", err)
 	}
 	if isBlacklisted {
-		log.Println("token is blacklisted")
+		log.Println("Token is blacklisted")
 		return nil, fmt.Errorf("token is blacklisted")
 	}
 

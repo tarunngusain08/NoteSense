@@ -47,19 +47,19 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
-// GetNoteHandler handles retrieving notes
-func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
-
-	// Extract user ID from query params
+// GetNotesHandler handles retrieving all notes for a user
+func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
 	userID, err := extractUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+
 	// Get notes
 	notes, err := h.NoteService.GetNotesByUserID(userID.String())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -68,7 +68,39 @@ func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(contracts.NotesResponse{Notes: notes})
 }
 
-// UpdateNoteHandler handles updating a note
+// GetNoteHandler handles retrieving a single note by ID
+func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get note ID from URL parameters
+	vars := mux.Vars(r)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get note from service
+	note, err := h.NoteService.GetNoteByID(noteID, userID)
+	if err != nil {
+		if err.Error() == "note not found" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return note
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
+}
+
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	// Get note ID from URL
 	vars := mux.Vars(r)

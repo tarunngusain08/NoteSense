@@ -30,10 +30,9 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 		return nil, fmt.Errorf("user ID is required")
 	}
 
-
 	// Create note model
 	note := &models.Note{
-		ID:        uuid.New(),
+		ID:         uuid.New(),
 		Title:      title,
 		Content:    content,
 		Categories: categories,
@@ -79,7 +78,8 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 	// Update fields if provided
 	if title != nil {
 		if *title == "" {
-			return nil, fmt.Errorf("title cannot be empty")
+			// return nil, fmt.Errorf("title cannot be empty")
+			*title = "Untitled"
 		}
 		updateData.Title = *title
 	}
@@ -108,6 +108,26 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 }
 
 // DeleteNote deletes a note by its ID
+// GetNoteByID retrieves a note by its ID and userID
+func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.Note, error) {
+	if noteID == uuid.Nil {
+		return nil, fmt.Errorf("note ID is required")
+	}
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("user ID is required")
+	}
+
+	note, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if note == nil {
+		return nil, fmt.Errorf("note not found")
+	}
+
+	return note, nil
+}
+
 func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	// Validate input
 	if noteID == uuid.Nil {
