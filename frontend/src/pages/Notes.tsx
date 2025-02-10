@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from "framer-motion"
 import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
@@ -37,8 +37,54 @@ export default function Notes() {
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null)
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState({})
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const dropdownTriggers = document.querySelectorAll('[data-category-dropdown-trigger]');
+      const dropdowns = document.querySelectorAll('[data-category-dropdown]');
+      
+      // Check if click is outside ALL dropdowns and their triggers
+      const isOutsideAllDropdowns = 
+        Array.from(dropdowns).every(dropdown => !dropdown.contains(target)) &&
+        Array.from(dropdownTriggers).every(trigger => !trigger.contains(target));
+
+      if (isOutsideAllDropdowns) {
+        setShowCategoryDropdown({});
+      }
+    }
+
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        categoryDropdownRef.current && 
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowCategoryDropdown(prevState => ({
+          ...prevState,
+          [Object.keys(prevState)[0]]: false
+        }));
+      }
+    }
+
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showCategoryDropdown]);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -353,39 +399,9 @@ export default function Notes() {
     setShowNoteModal(true);
   };
 
-  const reloadNotes = async () => {
-    try {
-      setIsLoading(true)
-      const fetchedNotes = await noteService.getUserNotes()
-      setNotes(fetchedNotes)
-    } catch (error) {
-      console.error("Failed to reload notes:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleNoteModalClose = () => {
-    setShowNoteModal(false)
-    setSelectedNote(null)
-    reloadNotes() // Reload notes when modal is closed
-  }
-
-  const handleNewNoteModalClose = () => {
-    setShowNewNoteModal(false)
-    setNewNote({
-      title: "",
-      content: "",
-      emoji: noteEmojis[0],
-      categories: [],
-    })
-    reloadNotes() // Reload notes when new note modal is closed
-  }
-
   const closeNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
-    reloadNotes(); // Reload notes when modal is closed
   };
 
   // Enhanced Note Detail Modal Variants
@@ -736,6 +752,7 @@ export default function Notes() {
                               [note.id]: !prevState[note.id]
                             }));
                           }}
+                          data-category-dropdown-trigger
                           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-purple-600"
                         >
                           <Tag className="h-4 w-4" />
@@ -752,7 +769,9 @@ export default function Notes() {
                                 stiffness: 300, 
                                 damping: 20 
                               }}
+                              data-category-dropdown
                               className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                              ref={categoryDropdownRef}
                             >
                               <div className="py-1">
                                 {categories
@@ -796,7 +815,7 @@ export default function Notes() {
                 exit="exit"
                 variants={overlayVariants}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
-                onClick={handleNoteModalClose}
+                onClick={closeNoteModal}
               >
                 <motion.div
                   variants={noteDetailModalVariants}
@@ -886,7 +905,7 @@ export default function Notes() {
           {/* New Note Modal */}
           {(showNewNoteModal || currentNoteId) && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="fixed inset-0" onClick={handleNewNoteModalClose} />
+              <div className="fixed inset-0" onClick={handleCloseNewNoteModal} />
               <div
                 className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden z-10"
                 onClick={(e) => e.stopPropagation()}
