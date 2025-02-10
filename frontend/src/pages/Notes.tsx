@@ -470,7 +470,10 @@ export default function Notes() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent note modal from opening
+                            handleDeleteNote(note.id)
+                          }}
                           className="text-gray-400 hover:text-red-500 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
