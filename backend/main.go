@@ -71,6 +71,9 @@ func main() {
 	// Set up the router
 	r := mux.NewRouter()
 
+	// Apply authentication middleware globally
+	r.Use(authMiddleware.ValidateTokenMiddleware)
+
 	// User routes
 	r.HandleFunc("/signup", userHandler.SignUpHandler).Methods("POST")
 	r.HandleFunc("/login", userHandler.LoginHandler).Methods("POST")

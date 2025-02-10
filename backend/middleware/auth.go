@@ -93,6 +93,28 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*models.User, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
+// ValidateTokenMiddleware is a middleware function compatible with Gorilla Mux
+func (m *AuthMiddleware) ValidateTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip authentication for signup and login routes
+		if r.URL.Path == "/signup" || r.URL.Path == "/login" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Authenticate the request
+		user, err := m.Authenticate(r)
+		if err != nil {
+			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Add user to context
+		ctx := context.WithValue(r.Context(), "user", user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // BlacklistToken adds a token to the blacklist
 func (m *AuthMiddleware) BlacklistToken(token string) error {
 	log.Println("Starting token blacklist process")
