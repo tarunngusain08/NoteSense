@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from "framer-motion"
-import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X } from "lucide-react"
+import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
@@ -40,6 +40,14 @@ export default function Notes() {
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth()
   const navigate = useNavigate()
+
+  // Add state for attachments
+  const [selectedNoteAttachments, setSelectedNoteAttachments] = useState<File[]>([]);
+  const [newNoteAttachments, setNewNoteAttachments] = useState<File[]>([]);
+
+  // File input ref for both modals
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const newNoteFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -497,6 +505,36 @@ export default function Notes() {
     }
   };
 
+  // Handle file selection
+  const handleFileSelect = (isNewNote: boolean) => {
+    const fileInput = isNewNote ? newNoteFileInputRef : fileInputRef;
+    if (fileInput.current) {
+      fileInput.current.click();
+    }
+  };
+
+  // File change handler
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, isNewNote: boolean) => {
+    const files = event.target.files;
+    if (files) {
+      const fileList = Array.from(files);
+      if (isNewNote) {
+        setNewNoteAttachments(prev => [...prev, ...fileList]);
+      } else {
+        setSelectedNoteAttachments(prev => [...prev, ...fileList]);
+      }
+    }
+  };
+
+  // Remove file
+  const removeFile = (index: number, isNewNote: boolean) => {
+    if (isNewNote) {
+      setNewNoteAttachments(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setSelectedNoteAttachments(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
@@ -901,62 +939,184 @@ export default function Notes() {
                       </motion.span>
                     ))}
                   </motion.div>
+
+                  {/* File Attachments Section */}
+                  <motion.div 
+                    variants={contentVariants}
+                    className="p-6 pt-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleFileSelect(false)}
+                        className="text-gray-500 hover:text-purple-600 flex items-center gap-2"
+                      >
+                        <Paperclip className="h-5 w-5" />
+                        Attach File
+                      </motion.button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        multiple 
+                        onChange={(e) => handleFileChange(e, false)} 
+                      />
+                    </div>
+                    {selectedNoteAttachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {selectedNoteAttachments.map((file, index) => (
+                          <div 
+                            key={index} 
+                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
+                          >
+                            {file.name}
+                            <button 
+                              onClick={() => removeFile(index, false)}
+                              className="ml-2 text-red-500 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* New Note Modal */}
-          {(showNewNoteModal || currentNoteId) && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="fixed inset-0" onClick={handleCloseNewNoteModal} />
-              <div
-                className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden z-10"
-                onClick={(e) => e.stopPropagation()}
+          <AnimatePresence>
+            {(showNewNoteModal || currentNoteId) && (
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={overlayVariants}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
+                onClick={handleCloseNewNoteModal}
               >
                 <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+                  variants={noteDetailModalVariants}
+                  className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden relative"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="p-6 flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-2xl">{newNote.emoji}</span>
-                        <input
-                          type="text"
-                          value={newNote.title}
-                          onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
-                          className="text-xl font-semibold w-full border-none focus:ring-2 focus:ring-purple-500 rounded-lg px-2 py-1"
-                          placeholder="Untitled Note"
-                        />
-                      </div>
-                      <button onClick={handleCloseNewNoteModal} className="text-gray-500 hover:text-gray-700">
-                        <X className="h-6 w-6" />
-                      </button>
-                    </div>
+                  {/* Note Header */}
+                  <motion.div 
+                    variants={headerVariants}
+                    className="flex items-center p-6 bg-gradient-to-r from-purple-50 to-blue-50"
+                  >
+                    <motion.span 
+                      initial={{ rotate: -180, scale: 0 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                      className="text-4xl mr-4"
+                    >
+                      {newNote.emoji}
+                    </motion.span>
+                    <motion.input
+                      variants={contentVariants}
+                      value={newNote.title}
+                      onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                      className="text-2xl font-bold w-full bg-transparent border-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+                      placeholder="Untitled Note"
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={handleCloseNewNoteModal}
+                      className="ml-4 text-gray-500 hover:text-red-500"
+                    >
+                      <X className="h-6 w-6" />
+                    </motion.button>
+                  </motion.div>
 
-                    <textarea
+                  {/* Note Content */}
+                  <motion.div 
+                    variants={contentVariants}
+                    className="p-6"
+                  >
+                    <motion.textarea
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        type: 'spring', 
+                        stiffness: 200, 
+                        delay: 0.3 
+                      }}
                       value={newNote.content}
                       onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-                      className="flex-1 w-full p-4 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      className="w-full h-64 resize-none border-none focus:ring-2 focus:ring-purple-500 rounded-lg p-4"
                       placeholder="Start writing your note here..."
                     />
+                  </motion.div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {newNote.categories.map((category) => (
-                        <span key={category} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                          {category}
-                        </span>
-                      ))}
+                  {/* Categories */}
+                  <motion.div 
+                    variants={contentVariants}
+                    className="p-6 pt-0 flex flex-wrap gap-2"
+                  >
+                    {newNote.categories.map((category) => (
+                      <motion.span
+                        key={category}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
+                      >
+                        {category}
+                      </motion.span>
+                    ))}
+                  </motion.div>
+
+                  {/* File Attachments Section */}
+                  <motion.div 
+                    variants={contentVariants}
+                    className="p-6 pt-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleFileSelect(true)}
+                        className="text-gray-500 hover:text-purple-600 flex items-center gap-2"
+                      >
+                        <Paperclip className="h-5 w-5" />
+                        Attach File
+                      </motion.button>
+                      <input 
+                        type="file" 
+                        ref={newNoteFileInputRef} 
+                        className="hidden" 
+                        multiple 
+                        onChange={(e) => handleFileChange(e, true)} 
+                      />
                     </div>
-                  </div>
+                    {newNoteAttachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {newNoteAttachments.map((file, index) => (
+                          <div 
+                            key={index} 
+                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
+                          >
+                            {file.name}
+                            <button 
+                              onClick={() => removeFile(index, true)}
+                              className="ml-2 text-red-500 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
                 </motion.div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
