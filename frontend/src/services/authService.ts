@@ -72,11 +72,11 @@ const authService = {
   setupAxiosInterceptors(token: string) {
     // Remove any existing interceptors
     if (this.interceptorId !== null) {
-      this.api.interceptors.response.eject(this.interceptorId);
+      api.interceptors.response.eject(this.interceptorId);
     }
 
     // Add token to headers for all requests
-    this.api.interceptors.request.use(
+    api.interceptors.request.use(
       (config) => {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -87,7 +87,7 @@ const authService = {
     );
 
     // Interceptor to handle token expiration
-    this.interceptorId = this.api.interceptors.response.use(
+    this.interceptorId = api.interceptors.response.use(
       (response) => response,
       (error) => {
         // Check if the error is due to token expiration
@@ -106,5 +106,51 @@ const authService = {
   // Expose the api for other services to use
   api: api
 };
+
+export function clearAuthData() {
+  // Remove token from local storage
+  localStorage.removeItem('token');
+  // Remove user info from local storage
+  localStorage.removeItem('user');
+  // Optional: Clear any other auth-related data
+}
+
+class AuthService {
+  async login(email: string, password: string) {
+    try {
+      const response = await api.post('/login', { email, password });
+      
+      // Store token and user info in local storage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      return response.data;
+    } catch (error) {
+      // Handle login errors
+      throw error;
+    }
+  }
+
+  async signup(userData: any) {
+    try {
+      const response = await api.post('/signup', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Add method to check if user is authenticated
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    return !!token; // Returns true if token exists
+  }
+
+  // Logout method
+  logout() {
+    clearAuthData();
+    window.location.href = '/login';
+  }
+}
 
 export default authService;

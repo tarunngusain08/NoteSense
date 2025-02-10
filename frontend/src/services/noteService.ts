@@ -1,4 +1,5 @@
 import axios from "axios"
+import { clearAuthData } from './authService';
 
 const API_BASE_URL = "http://localhost:8080/api"
 
@@ -18,6 +19,20 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Add a response interceptor to handle 401 unauthorized errors
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401) {
+      // Clear authentication data
+      clearAuthData();
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface Note {
   id: string
@@ -65,7 +80,7 @@ const noteService = {
   // Get a single note by ID
   getNoteById: async (noteId: string): Promise<Note> => {
     try {
-      const response = await noteService.api.get(`/notes/${noteId}`)
+      const response = await api.get(`/notes/${noteId}`)
       console.log("Get note by ID response:", response.data) // Debug log
       if (!response.data || !response.data.Note) {
         throw new Error("Invalid response format from get note by ID API")
@@ -115,7 +130,7 @@ const noteService = {
   // Delete a note
   deleteNote: async (noteId: string): Promise<void> => {
     try {
-      await noteService.api.delete(`/notes/${noteId}`)
+      await api.delete(`/notes/${noteId}`)
     } catch (error) {
       console.error("Error deleting note:", error)
       throw error
@@ -124,7 +139,7 @@ const noteService = {
 
   // Search notes
   searchNotes: async (query: string): Promise<Note[]> => {
-    const response = await noteService.api.get("/notes/search", {
+    const response = await api.get("/notes/search", {
       params: { q: query },
     })
     return response.data
