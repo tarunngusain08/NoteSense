@@ -11,25 +11,25 @@ import (
 	"github.com/google/uuid"
 )
 
-type VideoUploader struct {
+type AudioUploader struct {
 	BaseUploader
 }
 
-func NewVideoUploader() Uploader {
-	return &VideoUploader{
+func NewAudioUploader() *AudioUploader {
+	return &AudioUploader{
 		BaseUploader: BaseUploader{
-			MaxFileSize:  100 * 1024 * 1024, // 100MB
-			AllowedTypes: []string{".mp4", ".avi", ".mov", ".wmv", ".mkv"},
+			MaxFileSize:  50 * 1024 * 1024, // 50MB
+			AllowedTypes: []string{".mp3", ".wav", ".m4a", ".aac", ".ogg"},
 		},
 	}
 }
 
-func (u *VideoUploader) Upload(file *multipart.FileHeader, userID uuid.UUID) (*models.File, error) {
+func (u *AudioUploader) Upload(file *multipart.FileHeader, userID uuid.UUID) (*models.File, error) {
 	if err := u.ValidateFile(file); err != nil {
 		return nil, err
 	}
 
-	uploadDir := "uploads/videos"
+	uploadDir := "uploads/audio"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create upload directory: %v", err)
 	}
@@ -58,7 +58,7 @@ func (u *VideoUploader) Upload(file *multipart.FileHeader, userID uuid.UUID) (*m
 		ID:       uuid.New(),
 		UserID:   userID,
 		Name:     file.Filename,
-		Type:     models.VideoFile,
+		Type:     models.AudioFile,
 		Path:     filepath,
 		Size:     file.Size,
 		MimeType: file.Header.Get("Content-Type"),

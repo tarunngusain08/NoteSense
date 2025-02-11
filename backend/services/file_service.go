@@ -24,9 +24,9 @@ func NewFileService(repo *repositories.FileRepository) *FileService {
 		FileRepo: repo,
 		uploaders: map[models.FileType]upload.Uploader{
 			models.ImageFile: upload.NewImageUploader(ocrService),
-			models.VideoFile: upload.NewVideoUploader(),
+			models.AudioFile: upload.NewAudioUploader(),
 			// Temporarily remove unsupported file types until uploaders are implemented
-			// models.AudioFile:    upload.NewAudioUploader(),
+			// models.VideoFile: upload.NewVideoUploader(),
 			// models.DocumentFile: upload.NewDocumentUploader(),
 		},
 	}
