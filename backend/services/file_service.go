@@ -3,6 +3,7 @@ package services
 import (
 	"NoteSense/models"
 	"NoteSense/repositories"
+	"NoteSense/services/ocr"
 	"NoteSense/services/upload"
 	"context"
 	"fmt"
@@ -17,10 +18,12 @@ type FileService struct {
 }
 
 func NewFileService(repo *repositories.FileRepository) *FileService {
+	ocrService := ocr.NewOCRService()
+
 	return &FileService{
 		FileRepo: repo,
 		uploaders: map[models.FileType]upload.Uploader{
-			models.ImageFile: upload.NewImageUploader(),
+			models.ImageFile: upload.NewImageUploader(ocrService),
 			models.VideoFile: upload.NewVideoUploader(),
 			// Temporarily remove unsupported file types until uploaders are implemented
 			// models.AudioFile:    upload.NewAudioUploader(),

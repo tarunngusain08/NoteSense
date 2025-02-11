@@ -23,6 +23,7 @@ type File struct {
 	Path      string    `json:"path"`
 	Size      int64     `json:"size"`
 	MimeType  string    `json:"mimeType"`
+	OCRText   string    `json:"ocrText"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
