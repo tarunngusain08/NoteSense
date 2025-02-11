@@ -15,6 +15,98 @@ const backgrounds = [
 
 const icons = [StickyNote, BookOpen, PenTool, BookMarked, NotebookPen];
 
+const backgroundVariants = {
+  initial: { 
+    scale: 0.8, 
+    opacity: 0 
+  },
+  animate: { 
+    scale: 1, 
+    opacity: 1,
+    transition: {
+      duration: 1,
+      type: 'spring',
+      stiffness: 50
+    }
+  },
+  exit: { 
+    scale: 1.2, 
+    opacity: 0,
+    transition: {
+      duration: 0.6
+    }
+  }
+};
+
+const formContainerVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 50,
+    rotateX: -20
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    rotateX: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 70,
+      damping: 10,
+      duration: 0.8
+    }
+  },
+  hover: {
+    scale: 1.02,
+    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+    transition: { duration: 0.3 }
+  }
+};
+
+const inputVariants = {
+  initial: { 
+    opacity: 0, 
+    x: -50 
+  },
+  animate: (custom: number) => ({ 
+    opacity: 1, 
+    x: 0,
+    transition: {
+      delay: custom * 0.1,
+      type: 'spring',
+      stiffness: 100
+    }
+  }),
+  focus: {
+    scale: 1.05,
+    borderColor: '#4A90E2',
+    transition: { duration: 0.3 }
+  }
+};
+
+const buttonVariants = {
+  initial: { 
+    opacity: 0, 
+    y: 20 
+  },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 120
+    }
+  },
+  hover: { 
+    scale: 1.1,
+    backgroundColor: '#4A90E2',
+    transition: { duration: 0.3 }
+  },
+  tap: { 
+    scale: 0.95,
+    transition: { duration: 0.2 }
+  }
+};
+
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -50,11 +142,27 @@ export default function Login() {
         // Sign in
         await login(email, password);
         // Navigate to notes page after successful login
-        navigate('/notes');
+        navigate('/notes', {
+          state: { 
+            transition: {
+              type: 'spring',
+              stiffness: 300,
+              damping: 30
+            }
+          }
+        });
       } else {
         // Sign up
         await signup(email, password, name);
-        navigate('/notes');
+        navigate('/notes', {
+          state: { 
+            transition: {
+              type: 'spring',
+              stiffness: 300,
+              damping: 30
+            }
+          }
+        });
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred during authentication');
@@ -77,14 +185,20 @@ export default function Login() {
   const CurrentIcon = icons[currentIcon];
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={backgroundVariants}
+      className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden"
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={currentBg}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.5 }}
+          transition={{ duration: 1.8 }}  
           className="absolute inset-0"
           style={{
             backgroundImage: `url(${backgrounds[currentBg]})`,
@@ -97,9 +211,10 @@ export default function Login() {
       </AnimatePresence>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
+        variants={formContainerVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
         className="form-container bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-md relative z-10 transition-all duration-500"
       >
         <div className="flex items-center justify-center mb-8">
@@ -109,16 +224,17 @@ export default function Login() {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0, rotate: 180 }}
-              transition={{ type: "spring", duration: 0.5 }}
+              transition={{ type: "spring", duration: 0.8, stiffness: 60, damping: 12 }}  
             >
               <CurrentIcon className="w-12 h-12 text-purple-600" />
             </motion.div>
           </AnimatePresence>
         </div>
         <motion.h2
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-3xl font-bold text-center mb-8 text-gray-800"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, type: 'spring' }}
+          className="text-3xl font-bold text-center mb-6 text-gray-800"
         >
           {isLogin ? '✨ Welcome back! 📝' : '🌟 Create an account 📚'}
         </motion.h2>
@@ -126,6 +242,7 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}  
             className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm"
           >
             ❌ {error}
@@ -134,9 +251,11 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
             <motion.div
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
+              custom={0}
+              variants={inputVariants}
+              initial="initial"
+              animate="animate"
+              whileFocus="focus"
             >
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 👤 Name
@@ -152,9 +271,11 @@ export default function Login() {
             </motion.div>
           )}
           <motion.div
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            custom={1}
+            variants={inputVariants}
+            initial="initial"
+            animate="animate"
+            whileFocus="focus"
           >
             <label className="block text-sm font-medium text-gray-700 mb-2">
               📧 Email
@@ -169,9 +290,11 @@ export default function Login() {
             />
           </motion.div>
           <motion.div
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            custom={2}
+            variants={inputVariants}
+            initial="initial"
+            animate="animate"
+            whileFocus="focus"
           >
             <label className="block text-sm font-medium text-gray-700 mb-2">
               🔒 Password
@@ -186,29 +309,34 @@ export default function Login() {
             />
           </motion.div>
           <motion.button
-            whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(0,0,0,0.1)" }}
-            whileTap={{ scale: 0.98 }}
+            variants={buttonVariants}
+            initial="initial"
+            animate="animate"
+            whileHover="hover"
+            whileTap="tap"
             type="submit"
-            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all"
+            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold"
           >
             {isLogin ? '🚀 Sign In' : '✨ Sign Up'}
           </motion.button>
         </form>
         <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="mt-6 text-center text-gray-600"
         >
           {isLogin ? "Don't have an account? " : 'Already have an account? '}
-          <button
+          <motion.span
+            whileHover={{ scale: 1.1, color: '#4A90E2' }}
+            whileTap={{ scale: 0.95 }}
             onClick={toggleAuthMode}
-            className="text-purple-600 font-semibold hover:text-purple-700 transition-colors"
+            className="text-purple-600 cursor-pointer font-bold"
           >
             {isLogin ? '✍️ Sign up' : '🔑 Sign in'}
-          </button>
+          </motion.span>
         </motion.p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
