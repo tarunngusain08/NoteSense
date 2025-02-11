@@ -36,7 +36,7 @@ export default function Notes() {
   })
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null)
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null)
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState({})
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState<{ [key: string]: boolean }>({});
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth()
   const navigate = useNavigate()
