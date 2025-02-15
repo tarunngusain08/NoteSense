@@ -4,6 +4,7 @@ import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip, Grid2X2, Kan
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
+import { Toaster, toast } from 'react-hot-toast';
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
@@ -52,10 +53,12 @@ export default function Notes() {
   // New Kanban-specific state
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
   const [kanbanNotes, setKanbanNotes] = useState<{
+    backlog: Note[];
     todo: Note[];
     in_progress: Note[];
     done: Note[];
   }>({
+    backlog: [],
     todo: [],
     in_progress: [],
     done: []
@@ -547,6 +550,35 @@ export default function Notes() {
     }
   };
 
+  const fetchKanbanNotes = async () => {
+    try {
+      setIsLoading(true);
+      const kanbanNotes = await noteService.getKanbanNotes();
+      setKanbanNotes(kanbanNotes);
+    } catch (error) {
+      console.error('Error fetching Kanban notes:', error);
+      toast.error('Failed to load notes. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleViewMode = () => {
+    const newViewMode = viewMode === 'grid' ? 'kanban' : 'grid';
+    setViewMode(newViewMode);
+
+    // Fetch Kanban notes when switching to Kanban view
+    if (newViewMode === 'kanban') {
+      fetchKanbanNotes();
+    }
+  };
+
+  useEffect(() => {
+    if (viewMode === 'kanban') {
+      fetchKanbanNotes();
+    }
+  }, [viewMode]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
@@ -581,6 +613,7 @@ export default function Notes() {
 
   return (
     <AnimatePresence>
+      <Toaster />
       {isLoading ? (
         <div className="flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-500"></div>
@@ -692,7 +725,7 @@ export default function Notes() {
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <motion.button
-              onClick={() => setViewMode(viewMode === 'grid' ? 'kanban' : 'grid')}
+              onClick={toggleViewMode}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="
@@ -924,7 +957,7 @@ export default function Notes() {
                 >
                   <div className="p-4">
                     <h2 className="text-2xl font-bold mb-4">Kanban Board</h2>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                       {Object.entries(kanbanNotes).map(([status, notes]) => (
                         <div key={status} className="bg-gray-100 rounded-lg p-4">
                           <h3 className="text-lg font-semibold capitalize mb-2">
