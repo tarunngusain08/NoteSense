@@ -5,7 +5,12 @@ import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
 import { Toaster, toast } from 'react-hot-toast';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { 
+  DragDropContext, 
+  Droppable, 
+  Draggable, 
+  DropResult 
+} from 'react-beautiful-dnd';
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
@@ -1152,7 +1157,7 @@ export default function Notes() {
                             custom={columnIndex}
                             {...provided.droppableProps} 
                             ref={provided.innerRef} 
-                            className="bg-gray-100 rounded-2xl p-5 shadow-md"
+                            className="bg-gray-100 rounded-2xl p-5 shadow-md min-w-[300px] flex-shrink-0"
                           >
                             <h3 className="text-xl font-bold capitalize mb-4 text-gray-700 pl-2">
                               {status.replace('_', ' ')}
@@ -1163,14 +1168,30 @@ export default function Notes() {
                                 draggableId={note.id} 
                                 index={index}
                               >
-                                {(provided) => (
+                                {(provided, snapshot) => (
                                   <motion.div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    style={{
+                                      ...provided.draggableProps.style,
+                                      // Add additional styling for dragging state
+                                      boxShadow: snapshot.isDragging 
+                                        ? '0 10px 20px rgba(0,0,0,0.12)' 
+                                        : '0 4px 6px rgba(0,0,0,0.1)',
+                                      background: snapshot.isDragging 
+                                        ? 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)' 
+                                        : 'white'
+                                    }}
+                                    variants={kanbanCardVariants}
+                                    initial="initial"
+                                    animate="animate"
+                                    whileHover="hover"
+                                    whileTap="tap"
+                                    onClick={() => handleNoteCardClick(note)}
                                     className="bg-white rounded-xl mb-4 shadow-md"
                                   >
                                     <div 
-                                      {...provided.dragHandleProps}
                                       className="cursor-grab active:cursor-grabbing p-2 border-b border-gray-100 bg-gray-50 rounded-t-xl select-none"
                                     >
                                       <div className="flex justify-between items-center">
@@ -1237,13 +1258,7 @@ export default function Notes() {
                                 )}
                               </Draggable>
                             ))}
-                            <motion.div
-                              variants={placeholderVariants}
-                              initial="initial"
-                              animate="animate"
-                            >
-                              {provided.placeholder}
-                            </motion.div>
+                            {provided.placeholder}
                           </motion.div>
                         )}
                       </Droppable>
