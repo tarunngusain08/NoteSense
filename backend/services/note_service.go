@@ -185,11 +185,10 @@ func (s *NoteService) GetKanbanNotes(userID uuid.UUID) (*contracts.KanbanNotesRe
 
 	// Convert to KanbanNotesResponse
 	return &contracts.KanbanNotesResponse{
-		Backlog:       kanbanNotes.Backlog,
-		Todo:          kanbanNotes.Todo,
-		InProgress:    kanbanNotes.InProgress,
-		Done:          kanbanNotes.Done,
-		Uncategorized: kanbanNotes.Uncategorized,
+		Backlog:    kanbanNotes.Backlog,
+		Todo:       kanbanNotes.Todo,
+		InProgress: kanbanNotes.InProgress,
+		Done:       kanbanNotes.Done,
 	}, nil
 }
 
