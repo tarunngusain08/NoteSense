@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"NoteSense/contracts"
 	"NoteSense/models"
 	"NoteSense/repositories"
 
@@ -37,6 +38,7 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 		Content:    content,
 		Categories: categories,
 		UserID:     userID,
+		Status:     "backlog", // Default status
 	}
 
 	// Create note in repository
@@ -59,7 +61,7 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
-func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *string, categories *[]string, userID uuid.UUID) (*models.Note, error) {
+func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *string, categories *[]string, status *string, userID uuid.UUID) (*models.Note, error) {
 	// Retrieve existing note to get UserID and set the ID
 	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
@@ -73,6 +75,7 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 		Title:      existingNote.Title,
 		Content:    existingNote.Content,
 		Categories: existingNote.Categories,
+		Status:     existingNote.Status,
 	}
 
 	// Update fields if provided
@@ -92,6 +95,10 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 		updateData.Categories = *categories
 	}
 
+	if status != nil {
+		updateData.Status = *status
+	}
+
 	// Update note in repository
 	err = s.NoteRepo.Update(context.Background(), &updateData)
 	if err != nil {
@@ -107,7 +114,6 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 	return updatedNote, nil
 }
 
-// DeleteNote deletes a note by its ID
 // GetNoteByID retrieves a note by its ID and userID
 func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.Note, error) {
 	if noteID == uuid.Nil {
@@ -128,6 +134,7 @@ func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.N
 	return note, nil
 }
 
+// DeleteNote deletes a note by its ID
 func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	// Validate input
 	if noteID == uuid.Nil {
@@ -147,6 +154,81 @@ func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	// Delete note from repository
 	if err := s.NoteRepo.Delete(context.Background(), noteID, userID); err != nil {
 		return fmt.Errorf("failed to delete note: %v", err)
+	}
+
+	return nil
+}
+
+// SearchNotes searches notes based on query and optional categories
+func (s *NoteService) SearchNotes(query string, categories []string, userID uuid.UUID) ([]models.Note, error) {
+	// Validate input
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("user ID is required")
+	}
+
+	// Perform search in repository
+	return s.NoteRepo.SearchNotes(context.Background(), query, categories, userID)
+}
+
+// GetKanbanNotes retrieves notes organized in Kanban columns
+func (s *NoteService) GetKanbanNotes(userID uuid.UUID) (*contracts.KanbanNotesResponse, error) {
+	// Validate input
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("user ID is required")
+	}
+
+	// Retrieve Kanban notes from repository
+	kanbanNotes, err := s.NoteRepo.GetKanbanNotes(context.Background(), userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve Kanban notes: %v", err)
+	}
+
+	// Convert to KanbanNotesResponse
+	return &contracts.KanbanNotesResponse{
+		Backlog:       kanbanNotes.Backlog,
+		InProgress:    kanbanNotes.InProgress,
+		InReview:      kanbanNotes.InReview,
+		Done:          kanbanNotes.Done,
+		Uncategorized: kanbanNotes.Uncategorized,
+	}, nil
+}
+
+// UpdateNoteState updates the state of a note
+func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNoteStateRequest) error {
+	// Validate input
+	if noteID == uuid.Nil {
+		return fmt.Errorf("note ID is required")
+	}
+
+	// Extract userID from request
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %v", err)
+	}
+
+	// Validate state
+	validStates := map[string]bool{
+		"backlog":      true,
+		"todo":         true,
+		"in_progress": true,
+		"in_review":   true,
+		"done":        true,
+	}
+	if !validStates[req.State] {
+		return fmt.Errorf("invalid state: %s", req.State)
+	}
+
+	// Update note status
+	updateData := &models.Note{
+		ID:     noteID,
+		UserID: userID,
+		Status: req.State,
+	}
+
+	// Perform update in repository
+	err = s.NoteRepo.Update(context.Background(), updateData)
+	if err != nil {
+		return fmt.Errorf("failed to update note state: %v", err)
 	}
 
 	return nil
