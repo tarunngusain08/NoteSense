@@ -38,7 +38,7 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 		Content:    content,
 		Categories: categories,
 		UserID:     userID,
-		Status:     "backlog", // Default status
+		Status:     "BACKLOG", // Default status
 	}
 
 	// Create note in repository
@@ -178,7 +178,7 @@ func (s *NoteService) GetKanbanNotes(userID uuid.UUID) (*contracts.KanbanNotesRe
 	}
 
 	// Retrieve Kanban notes from repository
-	kanbanNotes, err := s.NoteRepo.GetKanbanNotes(context.Background(), userID)
+	kanbanNotes, err := s.NoteRepo.GetKanbanNotes(userID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve Kanban notes: %v", err)
 	}
@@ -186,8 +186,8 @@ func (s *NoteService) GetKanbanNotes(userID uuid.UUID) (*contracts.KanbanNotesRe
 	// Convert to KanbanNotesResponse
 	return &contracts.KanbanNotesResponse{
 		Backlog:       kanbanNotes.Backlog,
+		Todo:          kanbanNotes.Todo,
 		InProgress:    kanbanNotes.InProgress,
-		InReview:      kanbanNotes.InReview,
 		Done:          kanbanNotes.Done,
 		Uncategorized: kanbanNotes.Uncategorized,
 	}, nil
@@ -208,8 +208,8 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 
 	// Validate state
 	validStates := map[string]bool{
-		"backlog":      true,
-		"todo":         true,
+		"backlog":     true,
+		"todo":        true,
 		"in_progress": true,
 		"in_review":   true,
 		"done":        true,
@@ -245,11 +245,11 @@ func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *strin
 	// Validate state if provided
 	if status != nil {
 		validStates := map[string]bool{
-			"backlog":       true,
-			"todo":          true,
-			"in_progress":   true,
-			"in_review":     true,
-			"done":          true,
+			"backlog":     true,
+			"todo":        true,
+			"in_progress": true,
+			"in_review":   true,
+			"done":        true,
 		}
 		if !validStates[*status] {
 			return nil, fmt.Errorf("invalid note state: %s", *status)
