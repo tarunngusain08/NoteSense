@@ -138,10 +138,22 @@ const noteService = {
   },
 
   // Search notes
-  searchNotes: async (query: string): Promise<Note[]> => {
-    const response = await api.get("/notes/search", {
-      params: { q: query },
+  searchNotes: async (query: string, categories?: string[]): Promise<Note[]> => {
+    const response = await api.post("/notes/search", {
+      q: query,
+      categories: categories || [],
     })
+    return response.data.notes
+  },
+
+  // Get Kanban-organized notes
+  getKanbanNotes: async (): Promise<{
+    backlog: Note[];
+    in_progress: Note[];
+    in_review: Note[];
+    done: Note[];
+  }> => {
+    const response = await api.get("/notes/kanban")
     return response.data
   },
 
