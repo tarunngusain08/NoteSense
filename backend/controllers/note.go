@@ -197,26 +197,7 @@ func extractUserID(r *http.Request) (uuid.UUID, error) {
 	return uuid.Nil, fmt.Errorf("invalid token")
 }
 
-func (c *NoteHandler) GetKanbanNotes(w http.ResponseWriter, r *http.Request) {
-	// Extract userID from context (assuming you have middleware to set this)
-	userID, ok := r.Context().Value("userID").(uuid.UUID)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	notes, err := c.NoteService.GetKanbanNotes(userID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(notes)
-}
-
-func (c *NoteHandler) UpdateNoteState(w http.ResponseWriter, r *http.Request) {
+func (c *NoteHandler) UpdateNoteStateAndPriorityHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse note ID from URL
 	vars := mux.Vars(r)
 	noteIDStr := vars["id"]
@@ -226,33 +207,35 @@ func (c *NoteHandler) UpdateNoteState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request body
-	var req contracts.UpdateNoteStateRequest
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&req); err != nil {
+	// Extract userID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Decode request body
+	var updateRequest struct {
+		Status   *string `json:"status,omitempty"`
+		Priority *int    `json:"priority,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	// Validate state
-	validStates := map[string]bool{
-		"todo":        true,
-		"in_progress": true,
-		"done":        true,
-	}
-	if !validStates[req.State] {
-		http.Error(w, "Invalid state", http.StatusBadRequest)
-		return
-	}
-
-	// Update note state
-	if err := c.NoteService.UpdateNoteState(noteID, &req); err != nil {
+	// Update note in service
+	note, err := c.NoteService.UpdateNoteStateAndPriority(noteID, updateRequest.Status, updateRequest.Priority, userID)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Return updated note
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(note)
 }
 
 // GetKanbanNotesHandler handles retrieving notes in Kanban-style organization
