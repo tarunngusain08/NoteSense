@@ -85,6 +85,8 @@ func main() {
 	r.HandleFunc("/api/notes/{id}", noteHandler.GetNoteHandler).Methods("GET") // Get single note
 	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+	r.HandleFunc("/api/notes/search", noteHandler.SearchNotesHandler).Methods("POST")
+	r.HandleFunc("/api/notes/kanban", noteHandler.GetKanbanNotesHandler).Methods("GET")
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
@@ -102,6 +104,8 @@ func main() {
 	log.Println("  GET /notes")
 	log.Println("  PATCH /notes/{id}")
 	log.Println("  DELETE /notes/{id}")
+	log.Println("  POST /notes/search")
+	log.Println("  GET /notes/kanban")
 
 	if err := http.ListenAndServe(":8080", corsHandler(r)); err != nil {
 		log.Fatal("Error starting server:", err)
