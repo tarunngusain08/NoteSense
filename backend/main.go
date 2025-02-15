@@ -81,13 +81,14 @@ func main() {
 
 	// Note routes
 	r.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
-	r.HandleFunc("/api/notes", noteHandler.GetNotesHandler).Methods("GET")     // List all notes
+	r.HandleFunc("/api/notes", noteHandler.GetNotesHandler).Methods("GET") // List all notes
+	r.HandleFunc("/api/notes/search", noteHandler.SearchNotesHandler).Methods("POST")
+	r.HandleFunc("/api/notes/kanban", noteHandler.GetKanbanNotesHandler).Methods("GET")
+	r.HandleFunc("/api/notes/kanban/note/{id}", noteHandler.UpdateNoteStateAndPriorityHandler).Methods("PATCH")
+
 	r.HandleFunc("/api/notes/{id}", noteHandler.GetNoteHandler).Methods("GET") // Get single note
 	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
-	r.HandleFunc("/api/notes/search", noteHandler.SearchNotesHandler).Methods("POST")
-	r.HandleFunc("/api/notes/kanban", noteHandler.GetKanbanNotesHandler).Methods("GET")
-	r.HandleFunc("/api/notes/kanban/{id}", noteHandler.UpdateNoteStateAndPriorityHandler).Methods("PATCH")
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
@@ -96,17 +97,18 @@ func main() {
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
 
-	log.Println("Starting server on :8080")
-	log.Println("Routes:")
-	log.Println("  POST /signup")
-	log.Println("  POST /login")
-	log.Println("  POST /logout")
-	log.Println("  POST /notes")
-	log.Println("  GET /notes")
-	log.Println("  PATCH /notes/{id}")
-	log.Println("  DELETE /notes/{id}")
-	log.Println("  POST /notes/search")
-	log.Println("  GET /notes/kanban")
+	// Use structured logging
+	log.Printf("Starting server on :8080")
+	log.Printf("Registered routes:")
+	log.Printf("  - POST /signup")
+	log.Printf("  - POST /login")
+	log.Printf("  - POST /logout")
+	log.Printf("  - POST /api/notes")
+	log.Printf("  - GET /api/notes")
+	log.Printf("  - PATCH /api/notes/{id}")
+	log.Printf("  - DELETE /api/notes/{id}")
+	log.Printf("  - POST /api/notes/search")
+	log.Printf("  - GET /api/notes/kanban")
 
 	if err := http.ListenAndServe(":8080", corsHandler(r)); err != nil {
 		log.Fatal("Error starting server:", err)
