@@ -30,8 +30,8 @@ type UpdateNoteStateRequest struct {
 // KanbanNotesResponse represents notes organized in Kanban columns
 type KanbanNotesResponse struct {
 	Backlog       []models.Note `json:"backlog"`
+	Todo          []models.Note `json:"todo"`
 	InProgress    []models.Note `json:"in_progress"`
-	InReview      []models.Note `json:"in_review"`
 	Done          []models.Note `json:"done"`
 	Uncategorized []models.Note `json:"uncategorized"`
 }
