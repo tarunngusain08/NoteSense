@@ -521,7 +521,77 @@ export default function Notes() {
     }
   };
 
-  // Handle file selection
+  // Kanban Card Variants for Framer Motion
+  const kanbanCardVariants: Variants = {
+    initial: { 
+      opacity: 0, 
+      scale: 0.95,
+      y: 20,
+      rotateX: -10
+    },
+    animate: { 
+      opacity: 1, 
+      scale: 1,
+      y: 0,
+      rotateX: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 20
+      }
+    },
+    hover: {
+      scale: 1.03,
+      boxShadow: '0 12px 28px rgba(0, 0, 0, 0.08)',
+      rotateX: 2,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 10
+      }
+    },
+    tap: {
+      scale: 0.97,
+      transition: { 
+        type: 'spring',
+        stiffness: 400,
+        damping: 15
+      }
+    }
+  };
+
+  // Text Hover Variants for additional interaction
+  const textHoverVariants: Variants = {
+    initial: { 
+      scale: 1, 
+      opacity: 0.8 
+    },
+    hover: { 
+      scale: 1.02, 
+      opacity: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 10
+      }
+    }
+  };
+
+  // Kanban Column Variants
+  const kanbanColumnVariants: Variants = {
+    initial: { opacity: 0, x: -50 },
+    animate: (index) => ({
+      opacity: 1, 
+      x: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 20,
+        delay: index * 0.1
+      }
+    })
+  };
+
   const handleFileSelect = (isNewNote: boolean) => {
     const fileInput = isNewNote ? newNoteFileInputRef : fileInputRef;
     if (fileInput.current) {
@@ -989,15 +1059,19 @@ export default function Notes() {
               ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                   <div className="grid grid-cols-4 gap-4">
-                    {Object.entries(kanbanNotes).map(([status, notes]) => (
+                    {Object.entries(kanbanNotes).map(([status, notes], columnIndex) => (
                       <Droppable key={status} droppableId={status}>
                         {(provided) => (
-                          <div 
+                          <motion.div 
+                            variants={kanbanColumnVariants}
+                            initial="initial"
+                            animate="animate"
+                            custom={columnIndex}
                             {...provided.droppableProps} 
                             ref={provided.innerRef} 
-                            className="bg-gray-100 rounded-lg p-4"
+                            className="bg-gray-100 rounded-2xl p-5 shadow-md"
                           >
-                            <h3 className="text-lg font-semibold capitalize mb-2">
+                            <h3 className="text-xl font-bold capitalize mb-4 text-gray-700 pl-2">
                               {status.replace('_', ' ')}
                             </h3>
                             {notes.map((note, index) => (
@@ -1007,26 +1081,75 @@ export default function Notes() {
                                 index={index}
                               >
                                 {(provided) => (
-                                  <div
+                                  <motion.div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
+                                    variants={kanbanCardVariants}
+                                    initial="initial"
+                                    animate="animate"
+                                    whileHover="hover"
+                                    whileTap="tap"
                                     onClick={() => handleNoteCardClick(note)}
-                                    className="bg-white rounded-lg p-3 mb-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                    className="bg-white rounded-xl p-4 mb-4 shadow-md cursor-pointer 
+                                      transform transition-all duration-300 
+                                      hover:shadow-lg hover:scale-[1.02]"
                                   >
-                                    <div className="flex justify-between items-center">
-                                      <span className="font-semibold">{note.title}</span>
-                                      <span className="text-sm text-gray-500">{note.emoji}</span>
+                                    <div className="flex justify-between items-center mb-2">
+                                      <motion.span 
+                                        variants={textHoverVariants}
+                                        initial="initial"
+                                        whileHover="hover"
+                                        className="text-lg font-semibold text-gray-800 truncate pr-2"
+                                      >
+                                        {note.title}
+                                      </motion.span>
+                                      <motion.span 
+                                        variants={textHoverVariants}
+                                        initial="initial"
+                                        whileHover="hover"
+                                        className="text-2xl opacity-70"
+                                      >
+                                        {note.emoji}
+                                      </motion.span>
                                     </div>
-                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                      {note.content}
-                                    </p>
-                                  </div>
+                                    <motion.p 
+                                      variants={textHoverVariants}
+                                      initial="initial"
+                                      whileHover="hover"
+                                      className="text-sm text-gray-600 line-clamp-3 min-h-[3rem]"
+                                    >
+                                      {note.content || 'No content'}
+                                    </motion.p>
+                                    <div className="mt-3 flex justify-between items-center">
+                                      <motion.span 
+                                        variants={textHoverVariants}
+                                        initial="initial"
+                                        whileHover="hover"
+                                        className="text-xs text-gray-500"
+                                      >
+                                        {new Date(note.createdAt).toLocaleDateString()}
+                                      </motion.span>
+                                      <div className="flex space-x-1">
+                                        {note.categories.slice(0, 2).map((category, idx) => (
+                                          <motion.span 
+                                            key={idx}
+                                            variants={textHoverVariants}
+                                            initial="initial"
+                                            whileHover="hover"
+                                            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full"
+                                          >
+                                            {category}
+                                          </motion.span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </motion.div>
                                 )}
                               </Draggable>
                             ))}
                             {provided.placeholder}
-                          </div>
+                          </motion.div>
                         )}
                       </Droppable>
                     ))}
