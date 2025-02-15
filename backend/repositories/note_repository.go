@@ -18,11 +18,10 @@ type NoteRepository struct {
 
 // KanbanColumns represents the different columns for organizing notes
 type KanbanColumns struct {
-	Backlog       []models.Note
-	Todo          []models.Note
-	InProgress    []models.Note
-	Done          []models.Note
-	Uncategorized []models.Note
+	Backlog    []models.Note
+	Todo       []models.Note
+	InProgress []models.Note
+	Done       []models.Note
 }
 
 func NewNoteRepository(db *gorm.DB) *NoteRepository {
@@ -122,7 +121,7 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 	// Fetch notes for the user
 	var notes []models.Note
 	result := r.db.Where("user_id = ?", userID).Find(&notes)
-	
+
 	// Log total number of notes and any errors
 	log.Printf("Total notes found: %d", len(notes))
 	log.Printf("Database query error: %v", result.Error)
@@ -133,11 +132,10 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 
 	// Initialize kanban columns
 	kanbanNotes := &KanbanColumns{
-		Backlog:       []models.Note{},
-		Todo:          []models.Note{},
-		InProgress:    []models.Note{},
-		Done:          []models.Note{},
-		Uncategorized: []models.Note{},
+		Backlog:    []models.Note{},
+		Todo:       []models.Note{},
+		InProgress: []models.Note{},
+		Done:       []models.Note{},
 	}
 
 	// Categorize notes into columns
@@ -161,9 +159,6 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 		case "done", "completed":
 			kanbanNotes.Done = append(kanbanNotes.Done, note)
 			log.Printf("Added to Done: %s", note.Title)
-		default:
-			kanbanNotes.Uncategorized = append(kanbanNotes.Uncategorized, note)
-			log.Printf("Added to Uncategorized: %s", note.Title)
 		}
 	}
 
@@ -172,7 +167,6 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 	log.Printf("Todo notes: %d", len(kanbanNotes.Todo))
 	log.Printf("In Progress notes: %d", len(kanbanNotes.InProgress))
 	log.Printf("Done notes: %d", len(kanbanNotes.Done))
-	log.Printf("Uncategorized notes: %d", len(kanbanNotes.Uncategorized))
 
 	return kanbanNotes, nil
 }
