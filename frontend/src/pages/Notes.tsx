@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from "framer-motion"
-import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip } from "lucide-react"
+import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip, Grid2X2, Kanban } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
@@ -691,173 +691,260 @@ export default function Notes() {
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            <motion.button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'kanban' : 'grid')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="
+                fixed bottom-8 right-8 z-50 
+                bg-gradient-to-br from-purple-600 to-indigo-600 
+                text-white rounded-full 
+                w-16 h-16 flex items-center justify-center 
+                shadow-2xl hover:shadow-xl transition-all
+                ring-4 ring-white/30
+              "
             >
-              <motion.button
-                whileHover={{ scale: 1.02, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleCreateNewNote}
-                className="h-48 rounded-lg border-2 border-dashed border-purple-300 bg-white/50 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-purple-500 hover:border-purple-500 hover:text-purple-600 transition-colors"
-              >
+              <AnimatePresence mode="wait">
+                {viewMode === 'kanban' ? (
+                  <motion.div
+                    key="grid"
+                    initial={{ rotate: -180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 180, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <Grid2X2 size={28} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="kanban"
+                    initial={{ rotate: 180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -180, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <Kanban size={28} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
+            <AnimatePresence mode="wait">
+              {viewMode === 'grid' ? (
                 <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                  }}
-                  transition={{
-                    duration: 20,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "linear",
+                  key="grid-view"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 300, 
+                    damping: 20 
                   }}
                 >
-                  <Sparkles className="h-8 w-8 mb-2" />
-                </motion.div>
-                <span className="font-medium">Create new note ✨</span>
-              </motion.button>
-
-              <AnimatePresence>
-                {filteredNotes.map((note) => (
                   <motion.div
-                    key={note.id}
-                    id={`note-${note.id}`}
-                    layout
-                    variants={noteVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                    onClick={() => {
-                      setSelectedNote(note)
-                      setShowNoteModal(true)
-                    }}
-                    className="bg-white/70 backdrop-blur-sm rounded-lg shadow-sm p-6 transform transition-all duration-200 cursor-pointer"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{note.emoji}</span>
-                        <input
-                          type="text"
-                          value={note.title}
-                          onChange={(e) => {
-                            const newTitle = e.target.value
-                            setNotes(notes.map((n) => (n.id === note.id ? { ...n, title: newTitle } : n)))
-                            debounce(() => noteService.updateNote(note.id, { title: newTitle }), 500)()
-                          }}
-                          className="text-lg font-semibold w-full border-none focus:ring-0 p-0 bg-transparent"
-                          placeholder="Untitled Note"
-                        />
-                      </div>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent note modal from opening
-                          handleDeleteNote(note.id)
+                    <motion.button
+                      whileHover={{ scale: 1.02, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleCreateNewNote}
+                      className="h-48 rounded-lg border-2 border-dashed border-purple-300 bg-white/50 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-purple-500 hover:border-purple-500 hover:text-purple-600 transition-colors"
+                    >
+                      <motion.div
+                        animate={{
+                          rotate: [0, 360],
                         }}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        transition={{
+                          duration: 20,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "linear",
+                        }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </motion.button>
-                    </div>
+                        <Sparkles className="h-8 w-8 mb-2" />
+                      </motion.div>
+                      <span className="font-medium">Create new note ✨</span>
+                    </motion.button>
 
-                    <textarea
-                      value={note.content}
-                      onChange={(e) => {
-                        const newContent = e.target.value
-                        setNotes(notes.map((n) => (n.id === note.id ? { ...n, content: newContent } : n)))
-                        debounce(() => noteService.updateNote(note.id, { content: newContent }), 500)()
-                      }}
-                      className="w-full h-32 resize-none border-none focus:ring-0 p-0 bg-transparent"
-                      placeholder="Start writing..."
-                    />
-
-                    <div className="mt-4">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {note.categories.map((category) => (
-                          <motion.span
-                            key={category}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs"
-                          >
-                            {category}
-                            <button
+                    <AnimatePresence>
+                      {filteredNotes.map((note) => (
+                        <motion.div
+                          key={note.id}
+                          id={`note-${note.id}`}
+                          layout
+                          variants={noteVariants}
+                          whileHover="hover"
+                          whileTap="tap"
+                          onClick={() => {
+                            setSelectedNote(note)
+                            setShowNoteModal(true)
+                          }}
+                          className="bg-white/70 backdrop-blur-sm rounded-lg shadow-sm p-6 transform transition-all duration-200 cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{note.emoji}</span>
+                              <input
+                                type="text"
+                                value={note.title}
+                                onChange={(e) => {
+                                  const newTitle = e.target.value
+                                  setNotes(notes.map((n) => (n.id === note.id ? { ...n, title: newTitle } : n)))
+                                  debounce(() => noteService.updateNote(note.id, { title: newTitle }), 500)()
+                                }}
+                                className="text-lg font-semibold w-full border-none focus:ring-0 p-0 bg-transparent"
+                                placeholder="Untitled Note"
+                              />
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation(); // Prevent note modal from opening
-                                handleRemoveCategory(note.id, category)
+                                handleDeleteNote(note.id)
                               }}
-                              className="hover:text-red-500"
+                              className="text-gray-400 hover:text-red-500 transition-colors"
                             >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </motion.span>
-                        ))}
-                      </div>
-                      <div className="relative inline-block">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowCategoryDropdown(prevState => ({
-                              ...prevState,
-                              [note.id]: !prevState[note.id]
-                            }));
-                          }}
-                          data-category-dropdown-trigger
-                          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-purple-600"
-                        >
-                          <Tag className="h-4 w-4" />
-                          Add category
-                        </motion.button>
-                        <AnimatePresence>
-                          {showCategoryDropdown[note.id] && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                              transition={{ 
-                                type: "spring", 
-                                stiffness: 300, 
-                                damping: 20 
-                              }}
-                              data-category-dropdown
-                              className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
-                              ref={categoryDropdownRef}
-                            >
-                              <div className="py-1">
-                                {categories
-                                  .filter((cat) => !note.categories.includes(cat))
-                                  .map((category) => (
-                                    <motion.button
-                                      key={category}
-                                      whileHover={{ backgroundColor: "#f3e8ff" }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // Prevent note modal from opening
-                                        handleAddCategory(note.id, category);
-                                        setShowCategoryDropdown(prevState => ({
-                                          ...prevState,
-                                          [note.id]: false
-                                        }));
-                                      }}
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
-                                    >
-                                      {category}
-                                    </motion.button>
-                                  ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
+                              <Trash2 className="h-4 w-4" />
+                            </motion.button>
+                          </div>
+
+                          <textarea
+                            value={note.content}
+                            onChange={(e) => {
+                              const newContent = e.target.value
+                              setNotes(notes.map((n) => (n.id === note.id ? { ...n, content: newContent } : n)))
+                              debounce(() => noteService.updateNote(note.id, { content: newContent }), 500)()
+                            }}
+                            className="w-full h-32 resize-none border-none focus:ring-0 p-0 bg-transparent"
+                            placeholder="Start writing..."
+                          />
+
+                          <div className="mt-4">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {note.categories.map((category) => (
+                                <motion.span
+                                  key={category}
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs"
+                                >
+                                  {category}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent note modal from opening
+                                      handleRemoveCategory(note.id, category)
+                                    }}
+                                    className="hover:text-red-500"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </motion.span>
+                              ))}
+                            </div>
+                            <div className="relative inline-block">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowCategoryDropdown(prevState => ({
+                                    ...prevState,
+                                    [note.id]: !prevState[note.id]
+                                  }));
+                                }}
+                                data-category-dropdown-trigger
+                                className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-purple-600"
+                              >
+                                <Tag className="h-4 w-4" />
+                                Add category
+                              </motion.button>
+                              <AnimatePresence>
+                                {showCategoryDropdown[note.id] && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                    transition={{ 
+                                      type: "spring", 
+                                      stiffness: 300, 
+                                      damping: 20 
+                                    }}
+                                    data-category-dropdown
+                                    className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                                    ref={categoryDropdownRef}
+                                  >
+                                    <div className="py-1">
+                                      {categories
+                                        .filter((cat) => !note.categories.includes(cat))
+                                        .map((category) => (
+                                          <motion.button
+                                            key={category}
+                                            whileHover={{ backgroundColor: "#f3e8ff" }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Prevent note modal from opening
+                                              handleAddCategory(note.id, category);
+                                              setShowCategoryDropdown(prevState => ({
+                                                ...prevState,
+                                                [note.id]: false
+                                              }));
+                                            }}
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                                          >
+                                            {category}
+                                          </motion.button>
+                                        ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="kanban-view"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 300, 
+                    damping: 20 
+                  }}
+                >
+                  <div className="p-4">
+                    <h2 className="text-2xl font-bold mb-4">Kanban Board</h2>
+                    <div className="grid grid-cols-3 gap-4">
+                      {Object.entries(kanbanNotes).map(([status, notes]) => (
+                        <div key={status} className="bg-gray-100 rounded-lg p-4">
+                          <h3 className="text-lg font-semibold capitalize mb-2">
+                            {status.replace('_', ' ')}
+                          </h3>
+                          {notes.map(note => (
+                            <div 
+                              key={note.id} 
+                              className="bg-white p-3 rounded-md shadow-sm mb-2"
+                            >
+                              {note.title}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </main>
 
           {/* Enhanced Note Detail Modal */}
