@@ -233,3 +233,68 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 
 	return nil
 }
+
+// UpdateNoteStateAndPriority updates the state and/or priority of a note
+func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *string, priority *int, userID uuid.UUID) (*models.Note, error) {
+	// Retrieve existing note
+	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
+	}
+
+	// Validate state if provided
+	if status != nil {
+		validStates := map[string]bool{
+			"backlog":       true,
+			"todo":          true,
+			"in_progress":   true,
+			"in_review":     true,
+			"done":          true,
+		}
+		if !validStates[*status] {
+			return nil, fmt.Errorf("invalid note state: %s", *status)
+		}
+	}
+
+	// Validate priority if provided
+	if priority != nil {
+		if *priority < 0 || *priority > 3 {
+			return nil, fmt.Errorf("priority must be between 0 and 3")
+		}
+	}
+
+	// Prepare update data with existing values
+	updateData := models.Note{
+		ID:         noteID,
+		UserID:     existingNote.UserID,
+		Title:      existingNote.Title,
+		Content:    existingNote.Content,
+		Categories: existingNote.Categories,
+		Status:     existingNote.Status,
+		Priority:   existingNote.Priority,
+	}
+
+	// Update state if provided
+	if status != nil {
+		updateData.Status = *status
+	}
+
+	// Update priority if provided
+	if priority != nil {
+		updateData.Priority = *priority
+	}
+
+	// Update note in repository
+	err = s.NoteRepo.Update(context.Background(), &updateData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update note: %v", err)
+	}
+
+	// Retrieve and return the updated note
+	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
+	}
+
+	return updatedNote, nil
+}
