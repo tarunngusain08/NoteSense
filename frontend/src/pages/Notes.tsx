@@ -711,17 +711,12 @@ export default function Notes() {
     // Prevent dragging if not in Kanban view
     if (viewMode !== 'kanban') return;
 
-    // Vibration feedback for drag completion (for mobile-like experience)
-    if ('vibrate' in navigator) {
-      navigator.vibrate(50);
-    }
-
+    // Check if the drop location is different
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
     ) return;
 
-    // Haptic and audio feedback
     try {
       // Find the dragged note
       const sourceColumn = source.droppableId as keyof typeof kanbanNotes;
@@ -740,6 +735,11 @@ export default function Notes() {
       newKanbanNotes[destColumn].splice(destination.index, 0, draggedNote);
       
       setKanbanNotes(newKanbanNotes);
+
+      // Vibration feedback for mobile devices
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
 
       // Play subtle sound effect
       const audio = new Audio('/drag-drop-sound.mp3');
