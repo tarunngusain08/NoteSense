@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"log"
 	"strings"
 
 	"NoteSense/models"
@@ -18,8 +19,8 @@ type NoteRepository struct {
 // KanbanColumns represents the different columns for organizing notes
 type KanbanColumns struct {
 	Backlog       []models.Note
+	Todo          []models.Note
 	InProgress    []models.Note
-	InReview      []models.Note
 	Done          []models.Note
 	Uncategorized []models.Note
 }
@@ -117,43 +118,61 @@ func (r *NoteRepository) SearchNotes(ctx context.Context, query string, categori
 	return notes, nil
 }
 
-func (r *NoteRepository) GetKanbanNotes(ctx context.Context, userID uuid.UUID) (*KanbanColumns, error) {
+func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
+	// Fetch notes for the user
 	var notes []models.Note
+	result := r.db.Where("user_id = ?", userID).Find(&notes)
+	
+	// Log total number of notes and any errors
+	log.Printf("Total notes found: %d", len(notes))
+	log.Printf("Database query error: %v", result.Error)
 
-	// Fetch all notes for the user
-	if err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&notes).Error; err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	// Initialize Kanban columns
+	// Initialize kanban columns
 	kanbanNotes := &KanbanColumns{
 		Backlog:       []models.Note{},
+		Todo:          []models.Note{},
 		InProgress:    []models.Note{},
-		InReview:      []models.Note{},
 		Done:          []models.Note{},
 		Uncategorized: []models.Note{},
 	}
 
-	// Organize notes into columns
+	// Categorize notes into columns
 	for _, note := range notes {
-		// Normalize status to lowercase and trim whitespace
 		status := strings.TrimSpace(strings.ToLower(note.Status))
+
+		// Log each note's details
+		log.Printf("Note ID: %s, Title: %s, Status: %s", note.ID, note.Title, status)
 
 		// Map notes to appropriate columns
 		switch status {
-		case "backlog", "todo":
+		case "backlog":
 			kanbanNotes.Backlog = append(kanbanNotes.Backlog, note)
+			log.Printf("Added to Backlog: %s", note.Title)
+		case "todo":
+			kanbanNotes.Todo = append(kanbanNotes.Todo, note)
+			log.Printf("Added to Todo: %s", note.Title)
 		case "in_progress", "inprogress", "in progress":
 			kanbanNotes.InProgress = append(kanbanNotes.InProgress, note)
-		case "in_review", "inreview", "in review", "review":
-			kanbanNotes.InReview = append(kanbanNotes.InReview, note)
+			log.Printf("Added to In Progress: %s", note.Title)
 		case "done", "completed":
 			kanbanNotes.Done = append(kanbanNotes.Done, note)
+			log.Printf("Added to Done: %s", note.Title)
 		default:
-			// Catch-all for notes with unexpected or empty status
 			kanbanNotes.Uncategorized = append(kanbanNotes.Uncategorized, note)
+			log.Printf("Added to Uncategorized: %s", note.Title)
 		}
 	}
+
+	// Log column contents
+	log.Printf("Backlog notes: %d", len(kanbanNotes.Backlog))
+	log.Printf("Todo notes: %d", len(kanbanNotes.Todo))
+	log.Printf("In Progress notes: %d", len(kanbanNotes.InProgress))
+	log.Printf("Done notes: %d", len(kanbanNotes.Done))
+	log.Printf("Uncategorized notes: %d", len(kanbanNotes.Uncategorized))
 
 	return kanbanNotes, nil
 }
