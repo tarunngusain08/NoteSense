@@ -9,9 +9,9 @@ const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "�
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
 
 // Debounce function
-const debounce = (func: Function, wait: number) => {
-  let timeout: ReturnType<typeof setTimeout>
-  return (...args: any[]) => {
+const debounce = <T extends any[]>(func: (...args: T) => void, wait: number) => {
+  let timeout: NodeJS.Timeout
+  return (...args: T) => {
     clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
   }
@@ -48,6 +48,18 @@ export default function Notes() {
   // File input ref for both modals
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newNoteFileInputRef = useRef<HTMLInputElement>(null);
+
+  // New Kanban-specific state
+  const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
+  const [kanbanNotes, setKanbanNotes] = useState<{
+    todo: Note[];
+    in_progress: Note[];
+    done: Note[];
+  }>({
+    todo: [],
+    in_progress: [],
+    done: []
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
