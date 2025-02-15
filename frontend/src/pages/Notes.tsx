@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
 import { Toaster, toast } from 'react-hot-toast';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
@@ -579,6 +580,48 @@ export default function Notes() {
     }
   }, [viewMode]);
 
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+
+    // If dropped outside a droppable or in the same position, do nothing
+    if (!destination) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) return;
+
+    // Find the dragged note
+    const sourceColumn = source.droppableId as keyof typeof kanbanNotes;
+    const destColumn = destination.droppableId as keyof typeof kanbanNotes;
+    const draggedNote = kanbanNotes[sourceColumn][source.index];
+
+    try {
+      // Update note state in frontend
+      const newKanbanNotes = { ...kanbanNotes };
+      
+      // Remove from source column
+      newKanbanNotes[sourceColumn] = newKanbanNotes[sourceColumn].filter(
+        (_, index) => index !== source.index
+      );
+      
+      // Insert into destination column
+      newKanbanNotes[destColumn].splice(destination.index, 0, draggedNote);
+      
+      setKanbanNotes(newKanbanNotes);
+
+      // Update note status on the backend
+      await noteService.updateNoteStatus(draggedNote.id, destColumn);
+    } catch (error) {
+      console.error('Error updating note status:', error);
+      toast.error('Failed to update note status');
+    }
+  };
+
+  const handleNoteCardClick = (note: Note) => {
+    setSelectedNote(note);
+    setShowNoteModal(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
@@ -944,38 +987,51 @@ export default function Notes() {
                   </motion.div>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="kanban-view"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 300, 
-                    damping: 20 
-                  }}
-                >
-                  <div className="p-4">
-                    <h2 className="text-2xl font-bold mb-4">Kanban Board</h2>
-                    <div className="grid grid-cols-4 gap-4">
-                      {Object.entries(kanbanNotes).map(([status, notes]) => (
-                        <div key={status} className="bg-gray-100 rounded-lg p-4">
-                          <h3 className="text-lg font-semibold capitalize mb-2">
-                            {status.replace('_', ' ')}
-                          </h3>
-                          {notes.map(note => (
-                            <div 
-                              key={note.id} 
-                              className="bg-white p-3 rounded-md shadow-sm mb-2"
-                            >
-                              {note.title}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <div className="grid grid-cols-4 gap-4">
+                    {Object.entries(kanbanNotes).map(([status, notes]) => (
+                      <Droppable key={status} droppableId={status}>
+                        {(provided) => (
+                          <div 
+                            {...provided.droppableProps} 
+                            ref={provided.innerRef} 
+                            className="bg-gray-100 rounded-lg p-4"
+                          >
+                            <h3 className="text-lg font-semibold capitalize mb-2">
+                              {status.replace('_', ' ')}
+                            </h3>
+                            {notes.map((note, index) => (
+                              <Draggable 
+                                key={note.id} 
+                                draggableId={note.id} 
+                                index={index}
+                              >
+                                {(provided) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    onClick={() => handleNoteCardClick(note)}
+                                    className="bg-white rounded-lg p-3 mb-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-semibold">{note.title}</span>
+                                      <span className="text-sm text-gray-500">{note.emoji}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                      {note.content}
+                                    </p>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    ))}
                   </div>
-                </motion.div>
+                </DragDropContext>
               )}
             </AnimatePresence>
           </main>
