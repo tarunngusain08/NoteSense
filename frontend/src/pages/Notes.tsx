@@ -650,23 +650,85 @@ export default function Notes() {
     }
   }, [viewMode]);
 
+  // Enhanced Drag and Drop Animations
+  const getDragStyle = (isDragging: boolean, draggableStyle: any) => ({
+    ...draggableStyle,
+    userSelect: 'none',
+    margin: '0 0 8px 0',
+    transition: 'all 0.2s ease-in-out',
+    transform: isDragging 
+      ? `${draggableStyle.transform} rotate(3deg) scale(1.03)` 
+      : draggableStyle.transform,
+    boxShadow: isDragging 
+      ? '0 15px 30px rgba(0, 0, 0, 0.1)' 
+      : '0 4px 6px rgba(0, 0, 0, 0.05)',
+    background: isDragging 
+      ? 'linear-gradient(135deg, #f6f8f9 0%, #e5ebee 100%)' 
+      : 'white'
+  });
+
+  // Drag and Drop Column Animations
+  const columnVariants: Variants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: (index) => ({
+      opacity: 1, 
+      x: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 20,
+        delay: index * 0.1
+      }
+    })
+  };
+
+  // Drag Placeholder Animation
+  const placeholderVariants: Variants = {
+    initial: { 
+      opacity: 0, 
+      scale: 0.9,
+      y: 20 
+    },
+    animate: { 
+      opacity: 1, 
+      scale: 1,
+      y: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 15
+      }
+    }
+  };
+
+  // Enhanced onDragEnd with more sophisticated handling
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
 
     // If dropped outside a droppable or in the same position, do nothing
     if (!destination) return;
+    
+    // Prevent dragging if not in Kanban view
+    if (viewMode !== 'kanban') return;
+
+    // Vibration feedback for drag completion (for mobile-like experience)
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
     ) return;
 
-    // Find the dragged note
-    const sourceColumn = source.droppableId as keyof typeof kanbanNotes;
-    const destColumn = destination.droppableId as keyof typeof kanbanNotes;
-    const draggedNote = kanbanNotes[sourceColumn][source.index];
-
+    // Haptic and audio feedback
     try {
-      // Update note state in frontend
+      // Find the dragged note
+      const sourceColumn = source.droppableId as keyof typeof kanbanNotes;
+      const destColumn = destination.droppableId as keyof typeof kanbanNotes;
+      const draggedNote = kanbanNotes[sourceColumn][source.index];
+
+      // Optimistic UI update
       const newKanbanNotes = { ...kanbanNotes };
       
       // Remove from source column
@@ -679,11 +741,32 @@ export default function Notes() {
       
       setKanbanNotes(newKanbanNotes);
 
-      // Update note status on the backend
+      // Play subtle sound effect
+      const audio = new Audio('/drag-drop-sound.mp3');
+      audio.volume = 0.2;
+      audio.play().catch(() => {});
+
+      // Update note status on backend
       await noteService.updateNoteStatus(draggedNote.id, destColumn);
+
+      // Success toast
+      toast.success(`Moved "${draggedNote.title}" to ${destColumn.replace('_', ' ')}`, {
+        icon: '🚀',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
     } catch (error) {
       console.error('Error updating note status:', error);
-      toast.error('Failed to update note status');
+      toast.error('Failed to move note', {
+        style: {
+          borderRadius: '10px',
+          background: '#ff4b4b',
+          color: '#fff',
+        },
+      });
     }
   };
 
@@ -1063,7 +1146,7 @@ export default function Notes() {
                       <Droppable key={status} droppableId={status}>
                         {(provided) => (
                           <motion.div 
-                            variants={kanbanColumnVariants}
+                            variants={columnVariants}
                             initial="initial"
                             animate="animate"
                             custom={columnIndex}
@@ -1084,71 +1167,83 @@ export default function Notes() {
                                   <motion.div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    variants={kanbanCardVariants}
-                                    initial="initial"
-                                    animate="animate"
-                                    whileHover="hover"
-                                    whileTap="tap"
-                                    onClick={() => handleNoteCardClick(note)}
-                                    className="bg-white rounded-xl p-4 mb-4 shadow-md cursor-pointer 
-                                      transform transition-all duration-300 
-                                      hover:shadow-lg hover:scale-[1.02]"
+                                    className="bg-white rounded-xl mb-4 shadow-md"
                                   >
-                                    <div className="flex justify-between items-center mb-2">
-                                      <motion.span 
-                                        variants={textHoverVariants}
-                                        initial="initial"
-                                        whileHover="hover"
-                                        className="text-lg font-semibold text-gray-800 truncate pr-2"
-                                      >
-                                        {note.title}
-                                      </motion.span>
-                                      <motion.span 
-                                        variants={textHoverVariants}
-                                        initial="initial"
-                                        whileHover="hover"
-                                        className="text-2xl opacity-70"
-                                      >
-                                        {note.emoji}
-                                      </motion.span>
-                                    </div>
-                                    <motion.p 
-                                      variants={textHoverVariants}
-                                      initial="initial"
-                                      whileHover="hover"
-                                      className="text-sm text-gray-600 line-clamp-3 min-h-[3rem]"
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="cursor-grab active:cursor-grabbing p-2 border-b border-gray-100 bg-gray-50 rounded-t-xl select-none"
                                     >
-                                      {note.content || 'No content'}
-                                    </motion.p>
-                                    <div className="mt-3 flex justify-between items-center">
-                                      <motion.span 
-                                        variants={textHoverVariants}
-                                        initial="initial"
-                                        whileHover="hover"
-                                        className="text-xs text-gray-500"
-                                      >
-                                        {new Date(note.createdAt).toLocaleDateString()}
-                                      </motion.span>
-                                      <div className="flex space-x-1">
-                                        {note.categories.slice(0, 2).map((category, idx) => (
-                                          <motion.span 
-                                            key={idx}
-                                            variants={textHoverVariants}
-                                            initial="initial"
-                                            whileHover="hover"
-                                            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full"
-                                          >
-                                            {category}
-                                          </motion.span>
-                                        ))}
+                                      <div className="flex justify-between items-center">
+                                        <motion.span 
+                                          variants={textHoverVariants}
+                                          initial="initial"
+                                          whileHover="hover"
+                                          className="text-lg font-semibold text-gray-800 truncate pr-2"
+                                        >
+                                          {note.title}
+                                        </motion.span>
+                                        <motion.span 
+                                          variants={textHoverVariants}
+                                          initial="initial"
+                                          whileHover="hover"
+                                          className="text-2xl opacity-70"
+                                        >
+                                          {note.emoji}
+                                        </motion.span>
                                       </div>
                                     </div>
+                                    <motion.div
+                                      variants={kanbanCardVariants}
+                                      initial="initial"
+                                      animate="animate"
+                                      whileHover="hover"
+                                      whileTap="tap"
+                                      onClick={() => handleNoteCardClick(note)}
+                                      className="p-4 cursor-pointer"
+                                    >
+                                      <motion.p 
+                                        variants={textHoverVariants}
+                                        initial="initial"
+                                        whileHover="hover"
+                                        className="text-sm text-gray-600 line-clamp-3 min-h-[3rem]"
+                                      >
+                                        {note.content || 'No content'}
+                                      </motion.p>
+                                      <div className="mt-3 flex justify-between items-center">
+                                        <motion.span 
+                                          variants={textHoverVariants}
+                                          initial="initial"
+                                          whileHover="hover"
+                                          className="text-xs text-gray-500"
+                                        >
+                                          {new Date(note.createdAt).toLocaleDateString()}
+                                        </motion.span>
+                                        <div className="flex space-x-1">
+                                          {note.categories.slice(0, 2).map((category, idx) => (
+                                            <motion.span 
+                                              key={idx}
+                                              variants={textHoverVariants}
+                                              initial="initial"
+                                              whileHover="hover"
+                                              className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full"
+                                            >
+                                              {category}
+                                            </motion.span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </motion.div>
                                   </motion.div>
                                 )}
                               </Draggable>
                             ))}
-                            {provided.placeholder}
+                            <motion.div
+                              variants={placeholderVariants}
+                              initial="initial"
+                              animate="animate"
+                            >
+                              {provided.placeholder}
+                            </motion.div>
                           </motion.div>
                         )}
                       </Droppable>
