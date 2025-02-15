@@ -3,8 +3,11 @@ package controllers
 import (
 	"NoteSense/contracts"
 	"NoteSense/services"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -198,21 +201,43 @@ func extractUserID(r *http.Request) (uuid.UUID, error) {
 }
 
 func (c *NoteHandler) UpdateNoteStateAndPriorityHandler(w http.ResponseWriter, r *http.Request) {
+	// Log incoming request details
+	log.Printf("Received update request: %+v", r)
+
 	// Parse note ID from URL
 	vars := mux.Vars(r)
 	noteIDStr := vars["id"]
+	log.Printf("Received note ID: %s", noteIDStr)
+
 	noteID, err := uuid.Parse(noteIDStr)
 	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		log.Printf("Invalid note ID parsing error: %v", err)
+		http.Error(w, fmt.Sprintf("Invalid note ID: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	// Extract userID from token
 	userID, err := extractUserID(r)
 	if err != nil {
+		log.Printf("User ID extraction error: %v", err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+	log.Printf("User ID: %s", userID)
+
+	// Read raw request body for logging
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %v", err)
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	log.Printf("Request Body: %s", string(bodyBytes))
+
+	// Recreate body reader for decoding
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	// Decode request body
 	var updateRequest struct {
@@ -220,14 +245,20 @@ func (c *NoteHandler) UpdateNoteStateAndPriorityHandler(w http.ResponseWriter, r
 		Priority *int    `json:"priority,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("JSON decoding error: %v", err)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+
+	log.Printf("Update Request: Status=%v, Priority=%v",
+		updateRequest.Status,
+		updateRequest.Priority,
+	)
 
 	// Update note in service
 	note, err := c.NoteService.UpdateNoteStateAndPriority(noteID, updateRequest.Status, updateRequest.Priority, userID)
 	if err != nil {
+		log.Printf("Note update error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -235,28 +266,59 @@ func (c *NoteHandler) UpdateNoteStateAndPriorityHandler(w http.ResponseWriter, r
 	// Return updated note
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(note)
+	if err := json.NewEncoder(w).Encode(note); err != nil {
+		log.Printf("Response encoding error: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // GetKanbanNotesHandler handles retrieving notes in Kanban-style organization
 func (h *NoteHandler) GetKanbanNotesHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract user ID from token
+	// Log incoming request details
+	log.Printf("Received GetKanbanNotes request: Method=%s, URL=%s", r.Method, r.URL)
+
+	// Log all request headers for debugging
+	for name, headers := range r.Header {
+		for _, h := range headers {
+			log.Printf("Header: %v: %v", name, h)
+		}
+	}
+
+	// Extract user ID from token with detailed logging
 	userID, err := extractUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		log.Printf("Error extracting user ID: %v", err)
+		log.Printf("Authorization header: %s", r.Header.Get("Authorization"))
+		http.Error(w, fmt.Sprintf("Authentication error: %v", err), http.StatusUnauthorized)
 		return
 	}
+
+	log.Printf("Extracted User ID: %s", userID)
 
 	// Get Kanban notes
 	kanbanNotes, err := h.NoteService.GetKanbanNotes(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error fetching Kanban notes: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to retrieve notes: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	// Log notes breakdown before encoding
+	log.Printf("Kanban Notes Breakdown:")
+	log.Printf("Backlog: %d notes", len(kanbanNotes.Backlog))
+	log.Printf("Todo: %d notes", len(kanbanNotes.Todo))
+	log.Printf("In Progress: %d notes", len(kanbanNotes.InProgress))
+	log.Printf("Done: %d notes", len(kanbanNotes.Done))
+
 	// Return Kanban notes
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(kanbanNotes)
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(kanbanNotes); err != nil {
+		log.Printf("Error encoding Kanban notes: %v", err)
+		http.Error(w, "Failed to encode notes", http.StatusInternalServerError)
+		return
+	}
 }
 
 // SearchNotesHandler handles searching notes
