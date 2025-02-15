@@ -149,8 +149,8 @@ const noteService = {
   // Get Kanban-organized notes
   getKanbanNotes: async (): Promise<{
     backlog: Note[];
+    todo: Note[];
     in_progress: Note[];
-    in_review: Note[];
     done: Note[];
   }> => {
     const response = await api.get("/notes/kanban")
