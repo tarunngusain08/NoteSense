@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"log"
+	"strings"
 
 	"NoteSense/models"
 
@@ -12,6 +14,14 @@ import (
 // NoteRepository will handle note data operations
 type NoteRepository struct {
 	db *gorm.DB
+}
+
+// KanbanColumns represents the different columns for organizing notes
+type KanbanColumns struct {
+	Backlog    []models.Note
+	Todo       []models.Note
+	InProgress []models.Note
+	Done       []models.Note
 }
 
 func NewNoteRepository(db *gorm.DB) *NoteRepository {
@@ -60,4 +70,93 @@ func (r *NoteRepository) GetByID(ctx context.Context, noteID uuid.UUID, userID u
 	return &note, nil
 }
 
-// Implement methods for note data operations
+func (r *NoteRepository) GetNotesByState(userID uuid.UUID) (map[string][]models.Note, error) {
+	var notes []models.Note
+	result := r.db.Where("user_id = ?", userID).Order("priority").Find(&notes)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	groupedNotes := make(map[string][]models.Note)
+	for _, note := range notes {
+		groupedNotes[note.Status] = append(groupedNotes[note.Status], note)
+	}
+	return groupedNotes, nil
+}
+
+func (r *NoteRepository) UpdateNoteState(noteID uuid.UUID, state string, priority int) error {
+	return r.db.Model(&models.Note{}).
+		Where("id = ?", noteID).
+		Updates(map[string]interface{}{
+			"state":    state,
+			"priority": priority,
+		}).Error
+}
+
+func (r *NoteRepository) SearchNotes(ctx context.Context, query string, categories []string, userID uuid.UUID) ([]models.Note, error) {
+	var notes []models.Note
+
+	// Base query
+	tx := r.db.WithContext(ctx).Where("user_id = ?", userID)
+
+	// Add text search condition
+	if query != "" {
+		searchQuery := "%" + query + "%"
+		tx = tx.Where("title ILIKE ? OR content ILIKE ?", searchQuery, searchQuery)
+	}
+
+	// Filter by categories if provided
+	if len(categories) > 0 {
+		tx = tx.Where("? && categories", categories)
+	}
+
+	if err := tx.Find(&notes).Error; err != nil {
+		return nil, err
+	}
+
+	return notes, nil
+}
+
+func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
+	// Fetch notes for the user
+	var notes []models.Note
+	result := r.db.Where("user_id = ?", userID).Find(&notes)
+
+	// Log total number of notes and any errors
+	log.Printf("Total notes found: %d", len(notes))
+	log.Printf("Database query error: %v", result.Error)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Initialize kanban columns
+	kanbanNotes := &KanbanColumns{
+		Backlog:    []models.Note{},
+		Todo:       []models.Note{},
+		InProgress: []models.Note{},
+		Done:       []models.Note{},
+	}
+
+	// Categorize notes into columns
+	for _, note := range notes {
+		status := strings.TrimSpace(strings.ToLower(note.Status))
+
+		// Log each note's details
+		log.Printf("Note ID: %s, Title: %s, Status: %s", note.ID, note.Title, status)
+
+		// Map notes to appropriate columns
+		switch status {
+		case "backlog":
+			kanbanNotes.Backlog = append(kanbanNotes.Backlog, note)
+		case "todo":
+			kanbanNotes.Todo = append(kanbanNotes.Todo, note)
+		case "in_progress", "inprogress", "in progress":
+			kanbanNotes.InProgress = append(kanbanNotes.InProgress, note)
+		case "done", "completed":
+			kanbanNotes.Done = append(kanbanNotes.Done, note)
+		}
+	}
+
+	return kanbanNotes, nil
+}

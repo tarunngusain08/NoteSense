@@ -85,3 +85,32 @@ html {
     opacity: 0;
   }
 }
+
+.kanban-container {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  min-height: 70vh;
+  overflow-x: auto;
+}
+
+.kanban-column {
+  flex: 1;
+  min-width: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+
+  h2 {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      text-transform: uppercase;
+  }
+}
+
+.view-toggle {
+  position: relative;
+  margin-right: 1rem;
+}

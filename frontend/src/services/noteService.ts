@@ -127,6 +127,24 @@ const noteService = {
     }
   },
 
+  // Update note status for Kanban board
+  updateNoteStatus: async (noteId: string, newStatus: string): Promise<Note> => {
+    try {
+      const response = await api.patch(`/notes/kanban/note/${noteId}`, { 
+        status: newStatus 
+      });
+      
+      if (!response.data || !response.data.Note) {
+        throw new Error('Invalid response format from update note status API');
+      }
+      
+      return response.data.Note;
+    } catch (error) {
+      console.error('Error updating note status:', error);
+      throw error;
+    }
+  },
+
   // Delete a note
   deleteNote: async (noteId: string): Promise<void> => {
     try {
@@ -138,10 +156,22 @@ const noteService = {
   },
 
   // Search notes
-  searchNotes: async (query: string): Promise<Note[]> => {
-    const response = await api.get("/notes/search", {
-      params: { q: query },
+  searchNotes: async (query: string, categories?: string[]): Promise<Note[]> => {
+    const response = await api.post("/notes/search", {
+      q: query,
+      categories: categories || [],
     })
+    return response.data.notes
+  },
+
+  // Get Kanban-organized notes
+  getKanbanNotes: async (): Promise<{
+    backlog: Note[];
+    todo: Note[];
+    in_progress: Note[];
+    done: Note[];
+  }> => {
+    const response = await api.get("/notes/kanban")
     return response.data
   },
 
