@@ -70,33 +70,32 @@ const authService = {
   },
 
   setupAxiosInterceptors(token: string) {
-    // Remove any existing interceptors to prevent duplicates
+    // Remove any existing interceptors
     if (this.interceptorId !== null) {
-      api.interceptors.request.eject(this.interceptorId);
+      api.interceptors.response.eject(this.interceptorId);
     }
 
-    // Add a request interceptor to add the token to every request
-    this.interceptorId = api.interceptors.request.use(
+    // Add token to headers for all requests
+    api.interceptors.request.use(
       (config) => {
-        // Only add Authorization header if token exists and request is to our API
-        if (token && config.url?.startsWith(API_BASE_URL)) {
-          config.headers['Authorization'] = `Bearer ${token}`;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
 
-    // Add a response interceptor to handle token expiration
-    api.interceptors.response.use(
+    // Interceptor to handle token expiration
+    this.interceptorId = api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // If the server responds with a 401 (Unauthorized), it might mean the token has expired
+        // Check if the error is due to token expiration
         if (error.response && error.response.status === 401) {
-          // Trigger logout or token refresh
+          // Clear authentication data
           this.clearAuthData();
+          
+          // Redirect to login page
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -107,5 +106,51 @@ const authService = {
   // Expose the api for other services to use
   api: api
 };
+
+export function clearAuthData() {
+  // Remove token from local storage
+  localStorage.removeItem('token');
+  // Remove user info from local storage
+  localStorage.removeItem('user');
+  // Optional: Clear any other auth-related data
+}
+
+class AuthService {
+  async login(email: string, password: string) {
+    try {
+      const response = await api.post('/login', { email, password });
+      
+      // Store token and user info in local storage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      return response.data;
+    } catch (error) {
+      // Handle login errors
+      throw error;
+    }
+  }
+
+  async signup(userData: any) {
+    try {
+      const response = await api.post('/signup', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Add method to check if user is authenticated
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    return !!token; // Returns true if token exists
+  }
+
+  // Logout method
+  logout() {
+    clearAuthData();
+    window.location.href = '/login';
+  }
+}
 
 export default authService;
