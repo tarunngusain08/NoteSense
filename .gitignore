@@ -33,4 +33,5 @@ frontend/yarn-error.log*
 
 # Commit script
 commit_changes.sh
+.windsurfrules.md
 .windsurfrules
