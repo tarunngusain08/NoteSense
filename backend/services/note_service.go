@@ -210,7 +210,6 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 		"backlog":     true,
 		"todo":        true,
 		"in_progress": true,
-		"in_review":   true,
 		"done":        true,
 	}
 	if !validStates[req.State] {
@@ -247,7 +246,6 @@ func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *strin
 			"backlog":     true,
 			"todo":        true,
 			"in_progress": true,
-			"in_review":   true,
 			"done":        true,
 		}
 		if !validStates[*status] {
