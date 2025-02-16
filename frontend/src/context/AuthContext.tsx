@@ -9,6 +9,7 @@ interface AuthContextType {
     name: string;
     email: string;
     userId: string;
+    token: string;
   } | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
@@ -34,7 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (token && userId && name && email) {
           setIsAuthenticated(true);
-          setUser({ userId, name, email });
+          setUser({ 
+            userId, 
+            name, 
+            email, 
+            token 
+          });
           authService.setupAxiosInterceptors(token);
         }
       } catch (error) {
@@ -76,7 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         userId: response.userId,
         name: response.name,
-        email: response.email
+        email: response.email,
+        token: response.token  
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -102,7 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         userId: response.userId,
         name: response.name,
-        email: response.email
+        email: response.email,
+        token: response.token  
       });
     } catch (error) {
       console.error('Signup error:', error);
