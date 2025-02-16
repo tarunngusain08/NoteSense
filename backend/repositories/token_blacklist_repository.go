@@ -28,22 +28,10 @@ func (r *TokenBlacklistRepository) BlacklistToken(ctx context.Context, userID uu
 
 func (r *TokenBlacklistRepository) IsTokenBlacklisted(ctx context.Context, tokenUUID string) (bool, error) {
 	var count int64
-	
-	// Use a background context with a timeout to prevent context cancellation issues
-	queryCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	result := r.DB.WithContext(queryCtx).Model(&models.TokenBlacklist{}).
+	result := r.DB.WithContext(ctx).Model(&models.TokenBlacklist{}).
 		Where("token_uuid = ?", tokenUUID).
 		Count(&count)
-
-	// Check for context cancellation or other errors
-	if result.Error != nil {
-		// Log the error for debugging
-		return false, result.Error
-	}
-
-	return count > 0, nil
+	return count > 0, result.Error
 }
 
 func (r *TokenBlacklistRepository) CleanupExpiredTokens(ctx context.Context) error {

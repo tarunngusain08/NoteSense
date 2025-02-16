@@ -108,7 +108,7 @@ func main() {
 	}()
 
 	// Automigrate the models
-	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}, &models.File{}); err != nil {
 		log.Fatal("Error during migration:", err)
 	}
 	log.Println("Database migration completed")
@@ -117,10 +117,12 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	noteRepo := repositories.NewNoteRepository(db)
 	tokenBlacklistRepo := repositories.NewTokenBlacklistRepository(db)
+	fileRepo := repositories.NewFileRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	noteService := services.NewNoteService(noteRepo)
+	fileService := services.NewFileService(fileRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(userRepo, tokenBlacklistRepo)
@@ -131,12 +133,10 @@ func main() {
 		AuthorizationService: authMiddleware,
 	}
 	noteHandler := &controllers.NoteHandler{NoteService: noteService}
+	fileHandler := &controllers.FileHandler{FileService: fileService}
 
 	// Set up the router
 	r := mux.NewRouter()
-
-	// Apply authentication middleware globally
-	r.Use(authMiddleware.ValidateTokenMiddleware)
 
 	// User routes
 	r.HandleFunc("/signup", userHandler.SignUpHandler).Methods("POST")
@@ -145,19 +145,22 @@ func main() {
 
 	// Note routes
 	r.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
+
 	r.HandleFunc("/api/notes", noteHandler.GetNotesHandler).Methods("GET") // List all notes
 	r.HandleFunc("/api/notes/search", noteHandler.SearchNotesHandler).Methods("POST")
 	r.HandleFunc("/api/notes/kanban", noteHandler.GetKanbanNotesHandler).Methods("GET")
 	r.HandleFunc("/api/notes/kanban/note/{id}", noteHandler.UpdateNoteStateAndPriorityHandler).Methods("PATCH")
-
 	r.HandleFunc("/api/notes/{id}", noteHandler.GetNoteHandler).Methods("GET") // Get single note
 	r.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 
+	// File routes
+	r.HandleFunc("/api/files", fileHandler.UploadFileHandler).Methods("POST")
+
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
 

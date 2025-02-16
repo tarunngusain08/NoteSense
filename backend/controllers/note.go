@@ -39,7 +39,7 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	defer r.Body.Close()
 
 	// Create note
-	note, err := h.NoteService.CreateNote(*req.Title, *req.Content, *req.Categories, userID)
+	note, err := h.NoteService.CreateNote(req.Title, req.Content, req.Categories, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -51,19 +51,20 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
-// GetNotesHandler handles retrieving all notes for a user
-func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract user ID from token
+// GetNoteHandler handles retrieving notes
+func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
+
+	
+	// Extract user ID from query params
 	userID, err := extractUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	// Get notes
 	notes, err := h.NoteService.GetNotesByUserID(userID.String())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -72,39 +73,7 @@ func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(contracts.NotesResponse{Notes: notes})
 }
 
-// GetNoteHandler handles retrieving a single note by ID
-func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract user ID from token
-	userID, err := extractUserID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	// Get note ID from URL parameters
-	vars := mux.Vars(r)
-	noteID, err := uuid.Parse(vars["id"])
-	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
-		return
-	}
-
-	// Get note from service
-	note, err := h.NoteService.GetNoteByID(noteID, userID)
-	if err != nil {
-		if err.Error() == "note not found" {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Return note
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
-}
-
+// UpdateNoteHandler handles updating a note
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	// Get note ID from URL
 	vars := mux.Vars(r)
@@ -114,6 +83,8 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	
+
 	// Decode request body
 	var req contracts.NoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -121,14 +92,12 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	defer r.Body.Close()
-
 	// Parse userID from string to UUID
 	userID, err := extractUserID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	// Update note
 	note, err := h.NoteService.UpdateNote(noteID, req.Title, req.Content, req.Categories, req.Status, userID)
 	if err != nil {
@@ -138,7 +107,6 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 
 	// Return updated note
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(contracts.NoteResponse{Note: *note})
 }
 
@@ -167,6 +135,7 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	// Return success
 	w.WriteHeader(http.StatusNoContent)
 }
+
 
 func extractUserID(r *http.Request) (uuid.UUID, error) {
 	tokenString := r.Header.Get("Authorization")
@@ -199,6 +168,7 @@ func extractUserID(r *http.Request) (uuid.UUID, error) {
 
 	return uuid.Nil, fmt.Errorf("invalid token")
 }
+
 
 func (c *NoteHandler) UpdateNoteStateAndPriorityHandler(w http.ResponseWriter, r *http.Request) {
 	// Log incoming request details
@@ -342,3 +312,4 @@ func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(contracts.NotesResponse{Notes: notes})
 }
+

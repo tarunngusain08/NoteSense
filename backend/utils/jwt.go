@@ -20,7 +20,7 @@ type TokenDetails struct {
 
 func GenerateTokenPair(userId uuid.UUID) (*TokenDetails, error) {
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 30).Unix()
+	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
 	td.AccessUUID = uuid.New().String()
 
 	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
@@ -29,9 +29,9 @@ func GenerateTokenPair(userId uuid.UUID) (*TokenDetails, error) {
 	var err error
 	// Access Token
 	atClaims := jwt.MapClaims{
-		"user_id":     userId.String(),
+		"user_id":    userId.String(),
 		"access_uuid": td.AccessUUID,
-		"exp":         td.AtExpires,
+		"exp":        td.AtExpires,
 	}
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	td.AccessToken, err = at.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -41,9 +41,9 @@ func GenerateTokenPair(userId uuid.UUID) (*TokenDetails, error) {
 
 	// Refresh Token
 	rtClaims := jwt.MapClaims{
-		"user_id":      userId.String(),
+		"user_id":     userId.String(),
 		"refresh_uuid": td.RefreshUUID,
-		"exp":          td.RtExpires,
+		"exp":         td.RtExpires,
 	}
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
 	td.RefreshToken, err = rt.SignedString([]byte(os.Getenv("JWT_SECRET")))

@@ -31,9 +31,10 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 		return nil, fmt.Errorf("user ID is required")
 	}
 
+
 	// Create note model
 	note := &models.Note{
-		ID:         uuid.New(),
+		ID:        uuid.New(),
 		Title:      title,
 		Content:    content,
 		Categories: categories,
@@ -61,14 +62,13 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
+
 func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *string, categories *[]string, status *string, userID uuid.UUID) (*models.Note, error) {
 	// Retrieve existing note to get UserID and set the ID
 	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
-
-	// Prepare update data with existing values
 	updateData := models.Note{
 		ID:         noteID,
 		UserID:     existingNote.UserID,
@@ -104,7 +104,6 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to update note: %v", err)
 	}
-
 	// Retrieve and return the updated note
 	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
@@ -113,6 +112,7 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 
 	return updatedNote, nil
 }
+
 
 // GetNoteByID retrieves a note by its ID and userID
 func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.Note, error) {
