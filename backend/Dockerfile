@@ -1,5 +1,5 @@
 # Stage 1: Build the Go application
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # Stage 2: Create a minimal runtime image
 FROM alpine:latest
@@ -30,8 +30,8 @@ WORKDIR /root/
 # Copy the pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 
-# Copy configuration files if needed
-COPY --from=builder /app/config ./config
+# Copy .env file
+COPY --from=builder /app/.env .env
 
 # Expose port for the application
 EXPOSE 8080
