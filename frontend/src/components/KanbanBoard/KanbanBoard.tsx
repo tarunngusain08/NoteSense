@@ -177,35 +177,44 @@ const KanbanBoard: React.FC = () => {
 
   // Drag and Drop Handler
   const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
+    const { destination, source, draggableId } = result;
 
-    // If dropped outside a droppable area
-    if (!destination) return;
-
-    // If dropped in the same column and position
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
+    // If no destination or dropped in the same position, do nothing
+    if (!destination || 
+        (destination.droppableId === source.droppableId && 
+         destination.index === source.index)) {
       return;
     }
 
-    // Clone the current columns
-    const newColumns = [...columns];
+    // Create a new columns array to avoid direct mutation
+    const newColumns = Array.from(columns);
+    
+    // Find source and destination column
     const sourceColumn = newColumns.find(col => col.id === source.droppableId);
     const destColumn = newColumns.find(col => col.id === destination.droppableId);
 
-    if (sourceColumn && destColumn) {
-      // Remove note from source column
-      const [movedNote] = sourceColumn.notes.splice(source.index, 1);
-      
-      // Add note to destination column
-      destColumn.notes.splice(destination.index, 0, {
-        ...movedNote,
+    if (!sourceColumn || !destColumn) return;
+
+    // Remove note from source column
+    const [movedNote] = sourceColumn.notes.splice(source.index, 1);
+    
+    // Update note's status
+    movedNote.status = destination.droppableId;
+
+    // Insert note into destination column
+    destColumn.notes.splice(destination.index, 0, movedNote);
+
+    // Update state
+    setColumns(newColumns);
+
+    // Optional: Persist change to backend
+    try {
+      axios.patch(`/api/notes/${movedNote.id}/status`, {
         status: destination.droppableId
       });
-
-      setColumns(newColumns);
+    } catch (error) {
+      console.error('Failed to update note status', error);
+      // Optionally, revert the local state change
     }
   };
 
@@ -246,108 +255,81 @@ const KanbanBoard: React.FC = () => {
         {columns.map((column) => (
           <Droppable key={column.id} droppableId={column.id}>
             {(provided) => (
-              <motion.div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={`w-1/4 p-4 rounded-lg ${column.color}`}
-                variants={columnVariants}
-                initial="hidden"
-                animate="visible"
-                whileHover="hover"
+              <div 
+                ref={provided.innerRef} 
+                {...provided.droppableProps} 
+                className={`p-4 rounded-lg ${column.color}`}
               >
-                <motion.h2 
-                  className="text-lg font-semibold mb-4"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                >
-                  {column.title}
-                </motion.h2>
-                <div className="space-y-4">
+                <h2 className="text-xl font-bold mb-4">{column.title}</h2>
+                <AnimatePresence>
                   {column.notes.map((note, index) => (
                     <Draggable 
                       key={note.id} 
                       draggableId={note.id} 
                       index={index}
+                      isDragDisabled={false}
                     >
-                      {(provided) => (
+                      {(providedDraggable, snapshot) => (
                         <motion.div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 300, 
-                            damping: 20 
+                          ref={providedDraggable.innerRef}
+                          {...providedDraggable.draggableProps}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { 
+                              type: 'spring', 
+                              stiffness: 300, 
+                              damping: 20 
+                            }
+                          }}
+                          exit={{ 
+                            opacity: 0, 
+                            scale: 0.9,
+                            transition: { duration: 0.2 }
                           }}
                           className={`
-                            bg-white p-4 rounded-lg shadow-md cursor-move
+                            mb-4 rounded-lg shadow-md p-4 
                             ${getPriorityColor(note.priority)}
+                            ${snapshot.isDragging ? 'shadow-xl' : ''}
                           `}
                         >
-                          <div className="flex justify-between items-center">
-                            <motion.h3 
-                              className="font-medium"
-                              whileHover={{ 
-                                scale: 1.02, 
-                                transition: { 
-                                  type: 'spring', 
-                                  stiffness: 300, 
-                                  damping: 10 
-                                } 
-                              }}
-                            >
-                              {note.title}
-                            </motion.h3>
-                            {note.emoji && (
-                              <motion.span 
-                                initial={{ rotate: -180, scale: 0 }}
-                                animate={{ rotate: 0, scale: 1 }}
-                                transition={{ 
-                                  type: 'spring', 
-                                  stiffness: 300, 
-                                  damping: 15 
-                                }}
-                              >
-                                {note.emoji}
-                              </motion.span>
-                            )}
+                          {/* Drag Handle - Only this part can initiate drag */}
+                          <div 
+                            {...providedDraggable.dragHandleProps}
+                            className="cursor-move font-bold mb-2 flex items-center"
+                          >
+                            {note.emoji && <span className="mr-2">{note.emoji}</span>}
+                            {note.title}
                           </div>
-                          <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                            {note.content}
-                          </p>
-                          {note.categories && note.categories.length > 0 && (
-                            <motion.div 
-                              className="flex space-x-2 mt-2"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 0.2 }}
-                            >
+
+                          {/* Rest of the note content */}
+                          <div className="text-sm">
+                            {note.content.length > 100 
+                              ? `${note.content.substring(0, 100)}...` 
+                              : note.content}
+                          </div>
+
+                          {/* Categories */}
+                          {note.categories && (
+                            <div className="flex flex-wrap mt-2 space-x-1">
                               {note.categories.map((category) => (
-                                <motion.span 
+                                <span 
                                   key={category} 
-                                  className="text-xs bg-gray-100 px-2 py-1 rounded"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ 
-                                    type: 'spring', 
-                                    stiffness: 300, 
-                                    damping: 10 
-                                  }}
+                                  className="text-xs bg-gray-200 rounded-full px-2 py-1"
                                 >
                                   {category}
-                                </motion.span>
+                                </span>
                               ))}
-                            </motion.div>
+                            </div>
                           )}
                         </motion.div>
                       )}
                     </Draggable>
                   ))}
                   {provided.placeholder}
-                </div>
-              </motion.div>
+                </AnimatePresence>
+              </div>
             )}
           </Droppable>
         ))}
