@@ -34,7 +34,7 @@ func (n *Note) BeforeCreate(tx *gorm.DB) error {
 
 	// Set default status if not provided
 	if n.Status == "" {
-		n.Status = "backlog"
+		n.Status = "Backlog"
 	}
 
 	return nil
