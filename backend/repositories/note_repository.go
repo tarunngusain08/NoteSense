@@ -149,24 +149,14 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 		switch status {
 		case "backlog":
 			kanbanNotes.Backlog = append(kanbanNotes.Backlog, note)
-			log.Printf("Added to Backlog: %s", note.Title)
 		case "todo":
 			kanbanNotes.Todo = append(kanbanNotes.Todo, note)
-			log.Printf("Added to Todo: %s", note.Title)
 		case "in_progress", "inprogress", "in progress":
 			kanbanNotes.InProgress = append(kanbanNotes.InProgress, note)
-			log.Printf("Added to In Progress: %s", note.Title)
 		case "done", "completed":
 			kanbanNotes.Done = append(kanbanNotes.Done, note)
-			log.Printf("Added to Done: %s", note.Title)
 		}
 	}
-
-	// Log column contents
-	log.Printf("Backlog notes: %d", len(kanbanNotes.Backlog))
-	log.Printf("Todo notes: %d", len(kanbanNotes.Todo))
-	log.Printf("In Progress notes: %d", len(kanbanNotes.InProgress))
-	log.Printf("Done notes: %d", len(kanbanNotes.Done))
 
 	return kanbanNotes, nil
 }
