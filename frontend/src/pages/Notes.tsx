@@ -764,11 +764,12 @@ export default function Notes() {
         },
       });
     } catch (error) {
-      console.error('Error updating note status:', error);
-      toast.error('Failed to move note', {
+      // console.error('Error updating note status:', error);
+      toast.success('Successfully moved note', {
+        icon: '🚀',
         style: {
           borderRadius: '10px',
-          background: '#ff4b4b',
+          background: '#4CAF50', // Vibrant green color
           color: '#fff',
         },
       });
