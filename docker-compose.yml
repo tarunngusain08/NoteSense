@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - notesense-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=notesense
+      - DB_PASSWORD=notesense_password
+      - DB_NAME=notesense_db
+    depends_on:
+      - postgres
+    networks:
+      - notesense-network
+
+  postgres:
+    image: postgres:13-alpine
+    environment:
+      - POSTGRES_DB=notesense_db
+      - POSTGRES_USER=notesense
+      - POSTGRES_PASSWORD=notesense_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - notesense-network
+
+volumes:
+  postgres-data:
+
+networks:
+  notesense-network:
+    driver: bridge
