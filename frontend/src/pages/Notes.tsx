@@ -1175,7 +1175,6 @@ export default function Notes() {
                                     {...provided.dragHandleProps}
                                     style={{
                                       ...provided.draggableProps.style,
-                                      // Add additional styling for dragging state
                                       boxShadow: snapshot.isDragging 
                                         ? '0 10px 20px rgba(0,0,0,0.12)' 
                                         : '0 4px 6px rgba(0,0,0,0.1)',
@@ -1188,11 +1187,12 @@ export default function Notes() {
                                     animate="animate"
                                     whileHover="hover"
                                     whileTap="tap"
-                                    onClick={() => handleNoteCardClick(note)}
                                     className="bg-white rounded-xl mb-4 shadow-md"
                                   >
+                                    {/* Note Card Header - Draggable Area */}
                                     <div 
                                       className="cursor-grab active:cursor-grabbing p-2 border-b border-gray-100 bg-gray-50 rounded-t-xl select-none"
+                                      data-note-header="true"
                                     >
                                       <div className="flex justify-between items-center">
                                         <motion.span 
@@ -1213,13 +1213,25 @@ export default function Notes() {
                                         </motion.span>
                                       </div>
                                     </div>
+
+                                    {/* Note Card Body - Clickable Area */}
                                     <motion.div
                                       variants={kanbanCardVariants}
                                       initial="initial"
                                       animate="animate"
                                       whileHover="hover"
                                       whileTap="tap"
-                                      onClick={() => handleNoteCardClick(note)}
+                                      onClick={(e) => {
+                                        // Prevent modal if header or category is clicked
+                                        const target = e.target as HTMLElement;
+                                        const isNoteHeader = target.closest('[data-note-header="true"]');
+                                        const isCategoryElement = target.closest('[data-category-clickable="true"]');
+                                        
+                                        if (!isNoteHeader && !isCategoryElement) {
+                                          handleNoteCardClick(note);
+                                        }
+                                      }}
+                                      data-note-body="true"
                                       className="p-4 cursor-pointer"
                                     >
                                       <motion.p 
@@ -1247,6 +1259,7 @@ export default function Notes() {
                                               initial="initial"
                                               whileHover="hover"
                                               className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full"
+                                              data-category-clickable="true"
                                             >
                                               {category}
                                             </motion.span>
