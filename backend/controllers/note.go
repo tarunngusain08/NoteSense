@@ -304,13 +304,6 @@ func (h *NoteHandler) GetKanbanNotesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Log notes breakdown before encoding
-	log.Printf("Kanban Notes Breakdown:")
-	log.Printf("Backlog: %d notes", len(kanbanNotes.Backlog))
-	log.Printf("Todo: %d notes", len(kanbanNotes.Todo))
-	log.Printf("In Progress: %d notes", len(kanbanNotes.InProgress))
-	log.Printf("Done: %d notes", len(kanbanNotes.Done))
-
 	// Return Kanban notes
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
