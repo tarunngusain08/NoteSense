@@ -1,5 +1,6 @@
 import axios from "axios"
 import { clearAuthData } from './authService';
+import  fileService  from './fileService'; // Import fileService
 
 const API_BASE_URL = "https://backend-99l1.onrender.com"
 
@@ -50,6 +51,7 @@ export interface CreateNoteRequest {
   content: string
   emoji: string
   categories: string[]
+  attachments?: string[] // Array of file URLs or IDs
 }
 
 export interface UpdateNoteRequest {
@@ -93,20 +95,29 @@ const noteService = {
   },
 
   // Create a new note
-  createNote: async (note: CreateNoteRequest): Promise<Note> => {
+  createNote: async (note: CreateNoteRequest, attachments?: File[]): Promise<Note> => {
     try {
-      const response = await api.post('/notes', note);
+      // Upload attachments first if they exist
+      let attachmentUrls: string[] = [];
+      if (attachments && attachments.length > 0) {
+        const uploadPromises = attachments.map(file => 
+          fileService.uploadFile(file)
+        );
+        const uploadedFiles = await Promise.all(uploadPromises);
+        attachmentUrls = uploadedFiles.map(file => file.id);
+      }
+
+      // Merge attachment URLs with note request
+      const noteWithAttachments = {
+        ...note,
+        attachments: attachmentUrls
+      };
+
+      const response = await api.post('/notes', noteWithAttachments);
       console.log('Create note response:', response.data); // Debug log
       
       // Handle both possible response formats
-      const createdNote = response.data.note || response.data.Note || response.data;
-      console.log('Created note:', createdNote); // Debug log
-      
-      if (!createdNote || !createdNote.id) {
-        throw new Error('Invalid note data in response');
-      }
-      
-      return createdNote;
+      return response.data.Note || response.data;
     } catch (error) {
       console.error('Error creating note:', error);
       throw error;
