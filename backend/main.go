@@ -154,6 +154,11 @@ func main() {
 	r.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 
+	// Note Connection Routes
+	r.HandleFunc("/notes/{id}/connections", noteHandler.GetNoteConnectionsHandler).Methods("GET")
+	r.HandleFunc("/notes/{id}/connect", noteHandler.ConnectNoteHandler).Methods("POST")
+	r.HandleFunc("/notes/{id}/unlink/{connectedNoteId}", noteHandler.UnlinkNoteHandler).Methods("DELETE")
+
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
