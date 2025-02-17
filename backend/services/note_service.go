@@ -295,3 +295,94 @@ func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *strin
 
 	return updatedNote, nil
 }
+
+// ConnectNotes connects two notes
+func (s *NoteService) ConnectNotes(noteID, connectedNoteID uuid.UUID, connectionType string, userID uuid.UUID) error {
+	// Validate input
+	if noteID == uuid.Nil {
+		return fmt.Errorf("note ID is required")
+	}
+	if connectedNoteID == uuid.Nil {
+		return fmt.Errorf("connected note ID is required")
+	}
+	if connectionType == "" {
+		return fmt.Errorf("connection type is required")
+	}
+	if userID == uuid.Nil {
+		return fmt.Errorf("user ID is required")
+	}
+
+	// Prevent self-linking
+	if noteID == connectedNoteID {
+		return fmt.Errorf("cannot link a note to itself")
+	}
+
+	// Fetch the note to ensure it exists and belongs to the user
+	note, err := s.GetNoteByID(noteID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Check if already connected
+	for _, existingID := range note.ConnectedNoteIDs {
+		if existingID == connectedNoteID.String() {
+			return fmt.Errorf("notes are already connected")
+		}
+	}
+
+	// Verify the connected note exists and belongs to the user
+	// We don't need to store the note, just verify it exists
+	_, err = s.GetNoteByID(connectedNoteID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Add connection to the note
+	note.ConnectedNoteIDs = append(note.ConnectedNoteIDs, connectedNoteID.String())
+	note.ConnectionTypes = append(note.ConnectionTypes, connectionType)
+
+	// Save the updated note
+	if err := s.NoteRepo.Update(context.Background(), note); err != nil {
+		return fmt.Errorf("failed to update note connections: %v", err)
+	}
+
+	return nil
+}
+
+// UnlinkNotes removes a connection between two notes
+func (s *NoteService) UnlinkNotes(noteID, connectedNoteID uuid.UUID, userID uuid.UUID) error {
+	// Validate input
+	if noteID == uuid.Nil {
+		return fmt.Errorf("note ID is required")
+	}
+	if connectedNoteID == uuid.Nil {
+		return fmt.Errorf("connected note ID is required")
+	}
+	if userID == uuid.Nil {
+		return fmt.Errorf("user ID is required")
+	}
+
+	// Fetch the note to ensure it exists and belongs to the user
+	note, err := s.GetNoteByID(noteID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Find and remove the connection
+	for i, existingIDStr := range note.ConnectedNoteIDs {
+		if existingIDStr == connectedNoteID.String() {
+			// Remove the connection
+			note.ConnectedNoteIDs = append(note.ConnectedNoteIDs[:i], note.ConnectedNoteIDs[i+1:]...)
+			note.ConnectionTypes = append(note.ConnectionTypes[:i], note.ConnectionTypes[i+1:]...)
+
+			// Save the updated note
+			if err := s.NoteRepo.Update(context.Background(), note); err != nil {
+				return fmt.Errorf("failed to update note connections: %v", err)
+			}
+
+			return nil
+		}
+	}
+
+	return fmt.Errorf("connection not found")
+}
