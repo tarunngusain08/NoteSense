@@ -145,13 +145,16 @@ export default function Notes() {
 
   const handleCreateNewNote = async () => {
     try {
-      // Create a new note with initial empty content
+      // Create a new note with initial empty content and attachments
       const createdNote = await noteService.createNote({
         title: "Untitled Note",
         content: "",
         emoji: noteEmojis[Math.floor(Math.random() * noteEmojis.length)],
         categories: [],
-      })
+      }, newNoteAttachments.length > 0 ? newNoteAttachments : undefined)
+
+      // Reset attachments after upload
+      setNewNoteAttachments([]);
 
       // Refetch all notes to ensure the new note is visible
       const fetchedNotes = await noteService.getUserNotes()
@@ -781,6 +784,26 @@ export default function Notes() {
     setShowNoteModal(true);
   };
 
+  const handleFileAttachment = (files: FileList | null, isNewNote: boolean = false) => {
+    if (files) {
+      const fileArray = Array.from(files);
+      if (isNewNote) {
+        setNewNoteAttachments(prev => [...prev, ...fileArray]);
+      } else if (selectedNote) {
+        setSelectedNoteAttachments(prev => [...prev, ...fileArray]);
+      }
+    }
+  }
+
+  // Add file removal handler
+  const removeAttachment = (index: number, isNewNote: boolean = false) => {
+    if (isNewNote) {
+      setNewNoteAttachments(prev => prev.filter((_, i) => i !== index));
+    } else if (selectedNote) {
+      setSelectedNoteAttachments(prev => prev.filter((_, i) => i !== index));
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
@@ -1395,7 +1418,7 @@ export default function Notes() {
                         ref={fileInputRef} 
                         className="hidden" 
                         multiple 
-                        onChange={(e) => handleFileChange(e, false)} 
+                        onChange={(e) => handleFileAttachment(e.target.files, false)} 
                       />
                     </div>
                     {selectedNoteAttachments.length > 0 && (
@@ -1407,7 +1430,7 @@ export default function Notes() {
                           >
                             {file.name}
                             <button 
-                              onClick={() => removeFile(index, false)}
+                              onClick={() => removeAttachment(index, false)}
                               className="ml-2 text-red-500 hover:text-red-700"
                             >
                               <X className="h-4 w-4" />
@@ -1526,7 +1549,7 @@ export default function Notes() {
                         ref={newNoteFileInputRef} 
                         className="hidden" 
                         multiple 
-                        onChange={(e) => handleFileChange(e, true)} 
+                        onChange={(e) => handleFileAttachment(e.target.files, true)} 
                       />
                     </div>
                     {newNoteAttachments.length > 0 && (
@@ -1538,7 +1561,7 @@ export default function Notes() {
                           >
                             {file.name}
                             <button 
-                              onClick={() => removeFile(index, true)}
+                              onClick={() => removeAttachment(index, true)}
                               className="ml-2 text-red-500 hover:text-red-700"
                             >
                               <X className="h-4 w-4" />
