@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"NoteSense/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -62,4 +63,24 @@ type SearchNotesRequest struct {
 	Query      string   `json:"q"`
 	Categories []string `json:"categories,omitempty"`
 	UserID     string   `json:"userId"`
+}
+
+// MindMapNoteResponse represents a note with its connected notes for mind map visualization
+type MindMapNoteResponse struct {
+	ID        uuid.UUID `json:"id" db:"id"`
+	Title     string    `json:"title" db:"title"`
+	Content   string    `json:"content" db:"content"`
+	Category  []string  `json:"category,omitempty" db:"category"`
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
+
+	// Connected notes for mind map visualization
+	ConnectedNotes []MindMapNoteConnection `json:"connectedNotes"`
+}
+
+// MindMapNoteConnection represents a connection between notes
+type MindMapNoteConnection struct {
+	NoteID         string `json:"noteId" db:"note_id"`
+	Title          string `json:"title" db:"title"`
+	ConnectionType string `json:"connectionType,omitempty" db:"connection_type"`
 }
