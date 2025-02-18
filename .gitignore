@@ -35,3 +35,4 @@ frontend/yarn-error.log*
 commit_changes.sh
 .windsurfrules.md
 .windsurfrules
+node_modules
