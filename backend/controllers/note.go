@@ -473,3 +473,30 @@ func (h *NoteHandler) UnlinkNoteHandler(w http.ResponseWriter, r *http.Request) 
 		"message": "Notes unlinked successfully",
 	})
 }
+
+// GetNotesMindmapHandler handles retrieving notes for mind map visualization
+func (h *NoteHandler) GetNotesMindmapHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Retrieve notes for mind map
+	notes, err := h.NoteService.GetNotesForMindMap(userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve notes: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare response directly as map
+	response := map[string]interface{}{
+		"notes":      notes,
+		"totalNotes": len(notes),
+	}
+
+	// Set content type and write response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
