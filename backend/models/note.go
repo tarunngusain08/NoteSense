@@ -30,8 +30,9 @@ type Note struct {
 	Priority   int            `json:"priority" gorm:"default:0"`
 
 	// New fields for note connections
-	ConnectedNoteIDs pq.StringArray `gorm:"type:uuid[]" json:"connectedNoteIds,omitempty"`
-	ConnectionTypes  pq.StringArray `gorm:"type:text[]" json:"connectionTypes,omitempty"`
+	ConnectedNoteIDs    pq.StringArray `gorm:"type:uuid[]" json:"connectedNoteIds,omitempty"`
+	ConnectedNoteTitles pq.StringArray `gorm:"type:text[]" json:"connectedNoteTitles,omitempty"`
+	ConnectionTypes     pq.StringArray `gorm:"type:text[]" json:"connectionTypes,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -58,6 +59,9 @@ func (n *Note) BeforeCreate(tx *gorm.DB) error {
 	if n.ConnectedNoteIDs == nil {
 		n.ConnectedNoteIDs = []string{}
 	}
+	if n.ConnectedNoteTitles == nil {
+		n.ConnectedNoteTitles = []string{}
+	}
 	if n.ConnectionTypes == nil {
 		n.ConnectionTypes = []string{}
 	}
@@ -66,7 +70,7 @@ func (n *Note) BeforeCreate(tx *gorm.DB) error {
 }
 
 // AddConnection adds a connection to the note
-func (n *Note) AddConnection(noteID uuid.UUID, connectionType ConnectionType) error {
+func (n *Note) AddConnection(noteID uuid.UUID, connectionType ConnectionType, noteTitle string) error {
 	// Prevent duplicate connections
 	noteIDStr := noteID.String()
 	for _, existingID := range n.ConnectedNoteIDs {
@@ -82,6 +86,7 @@ func (n *Note) AddConnection(noteID uuid.UUID, connectionType ConnectionType) er
 
 	// Add connection
 	n.ConnectedNoteIDs = append(n.ConnectedNoteIDs, noteIDStr)
+	n.ConnectedNoteTitles = append(n.ConnectedNoteTitles, noteTitle)
 	n.ConnectionTypes = append(n.ConnectionTypes, string(connectionType))
 
 	return nil
@@ -90,10 +95,12 @@ func (n *Note) AddConnection(noteID uuid.UUID, connectionType ConnectionType) er
 // GetConnections returns the connected notes and their connection types
 func (n *Note) GetConnections() []struct {
 	NoteID         uuid.UUID
+	NoteTitle      string
 	ConnectionType ConnectionType
 } {
 	var connections []struct {
 		NoteID         uuid.UUID
+		NoteTitle      string
 		ConnectionType ConnectionType
 	}
 
@@ -102,9 +109,11 @@ func (n *Note) GetConnections() []struct {
 		if err == nil {
 			connections = append(connections, struct {
 				NoteID         uuid.UUID
+				NoteTitle      string
 				ConnectionType ConnectionType
 			}{
 				NoteID:         noteID,
+				NoteTitle:      n.ConnectedNoteTitles[i],
 				ConnectionType: ConnectionType(n.ConnectionTypes[i]),
 			})
 		}
@@ -120,6 +129,7 @@ func (n *Note) RemoveConnection(noteID uuid.UUID) error {
 		if existingID == noteIDStr {
 			// Remove the connection
 			n.ConnectedNoteIDs = append(n.ConnectedNoteIDs[:i], n.ConnectedNoteIDs[i+1:]...)
+			n.ConnectedNoteTitles = append(n.ConnectedNoteTitles[:i], n.ConnectedNoteTitles[i+1:]...)
 			n.ConnectionTypes = append(n.ConnectionTypes[:i], n.ConnectionTypes[i+1:]...)
 			return nil
 		}
