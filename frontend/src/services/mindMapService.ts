@@ -1,7 +1,8 @@
 import axios from "axios"
 import noteService, { Note } from "./noteService"
 
-const API_BASE_URL = "https://backend-99l1.onrender.com"
+// const API_BASE_URL = "https://backend-99l1.onrender.com"
+const API_BASE_URL = 'http://localhost:8080';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -104,8 +105,20 @@ const mindMapService = {
   // Fetch initial mind map notes for the user
   getUserMindMapNotes: async (): Promise<Note[]> => {
     try {
-      const response = await api.get('/api/notes/mindmap');
-      return response.data.notes;
+      const response = await api.get('/notes/mindmap');
+      
+      // Handle different possible response structures
+      if (Array.isArray(response.data)) {
+        // If response is directly an array of notes
+        return response.data;
+      } else if (response.data.notes) {
+        // If response has a 'notes' property
+        return response.data.notes;
+      } else {
+        // If response doesn't match expected format
+        console.warn('Unexpected response format for mind map notes', response.data);
+        return [];
+      }
     } catch (error) {
       console.error('Failed to fetch mind map notes', error);
       throw error;
