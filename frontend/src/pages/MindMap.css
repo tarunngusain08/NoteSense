@@ -43,6 +43,12 @@
   background-color: #e6f2ff;
 }
 
+.note-item.selected {
+  background-color: #4A90E2;
+  color: white;
+  font-weight: bold;
+}
+
 .mind-map-visualization {
   flex-grow: 1;
   background-color: white;
