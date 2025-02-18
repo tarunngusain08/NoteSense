@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"NoteSense/contracts"
@@ -13,12 +14,12 @@ import (
 
 // NoteService handles note-related operations
 type NoteService struct {
-	NoteRepo *repositories.NoteRepository
+	noteRepo *repositories.NoteRepository
 }
 
 // NewNoteService creates a new NoteService
 func NewNoteService(repo *repositories.NoteRepository) *NoteService {
-	return &NoteService{NoteRepo: repo}
+	return &NoteService{noteRepo: repo}
 }
 
 // CreateNote creates a new note
@@ -42,7 +43,7 @@ func (s *NoteService) CreateNote(title, content string, categories []string, use
 	}
 
 	// Create note in repository
-	if err := s.NoteRepo.Create(context.Background(), note); err != nil {
+	if err := s.noteRepo.Create(context.Background(), note); err != nil {
 		return nil, err
 	}
 
@@ -57,13 +58,13 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 	}
 
 	// Retrieve notes from repository
-	return s.NoteRepo.GetByUserID(context.Background(), userID)
+	return s.noteRepo.GetByUserID(context.Background(), userID)
 }
 
 // UpdateNote updates an existing note
 func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *string, categories *[]string, status *string, userID uuid.UUID) (*models.Note, error) {
 	// Retrieve existing note to get UserID and set the ID
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	existingNote, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
@@ -100,13 +101,13 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 	}
 
 	// Update note in repository
-	err = s.NoteRepo.Update(context.Background(), &updateData)
+	err = s.noteRepo.Update(context.Background(), &updateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update note: %v", err)
 	}
 
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	updatedNote, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
@@ -123,7 +124,7 @@ func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.N
 		return nil, fmt.Errorf("user ID is required")
 	}
 
-	note, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	note, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	}
 
 	// First, retrieve the note to return
-	note, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	note, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve note: %v", err)
 	}
@@ -152,7 +153,7 @@ func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	}
 
 	// Delete note from repository
-	if err := s.NoteRepo.Delete(context.Background(), noteID, userID); err != nil {
+	if err := s.noteRepo.Delete(context.Background(), noteID, userID); err != nil {
 		return fmt.Errorf("failed to delete note: %v", err)
 	}
 
@@ -167,7 +168,7 @@ func (s *NoteService) SearchNotes(query string, categories []string, userID uuid
 	}
 
 	// Perform search in repository
-	return s.NoteRepo.SearchNotes(context.Background(), query, categories, userID)
+	return s.noteRepo.SearchNotes(context.Background(), query, categories, userID)
 }
 
 // GetKanbanNotes retrieves notes organized in Kanban columns
@@ -178,7 +179,7 @@ func (s *NoteService) GetKanbanNotes(userID uuid.UUID) (*contracts.KanbanNotesRe
 	}
 
 	// Retrieve Kanban notes from repository
-	kanbanNotes, err := s.NoteRepo.GetKanbanNotes(userID.String())
+	kanbanNotes, err := s.noteRepo.GetKanbanNotes(userID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve Kanban notes: %v", err)
 	}
@@ -224,7 +225,7 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 	}
 
 	// Perform update in repository
-	err = s.NoteRepo.Update(context.Background(), updateData)
+	err = s.noteRepo.Update(context.Background(), updateData)
 	if err != nil {
 		return fmt.Errorf("failed to update note state: %v", err)
 	}
@@ -235,7 +236,7 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 // UpdateNoteStateAndPriority updates the state and/or priority of a note
 func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *string, priority *int, userID uuid.UUID) (*models.Note, error) {
 	// Retrieve existing note
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	existingNote, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
@@ -282,13 +283,13 @@ func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *strin
 	}
 
 	// Update note in repository
-	err = s.NoteRepo.Update(context.Background(), &updateData)
+	err = s.noteRepo.Update(context.Background(), &updateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update note: %v", err)
 	}
 
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	updatedNote, err := s.noteRepo.GetByID(context.Background(), noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
@@ -342,7 +343,7 @@ func (s *NoteService) ConnectNotes(noteID, connectedNoteID uuid.UUID, connection
 	note.ConnectionTypes = append(note.ConnectionTypes, connectionType)
 
 	// Save the updated note
-	if err := s.NoteRepo.Update(context.Background(), note); err != nil {
+	if err := s.noteRepo.Update(context.Background(), note); err != nil {
 		return fmt.Errorf("failed to update note connections: %v", err)
 	}
 
@@ -376,7 +377,7 @@ func (s *NoteService) UnlinkNotes(noteID, connectedNoteID uuid.UUID, userID uuid
 			note.ConnectionTypes = append(note.ConnectionTypes[:i], note.ConnectionTypes[i+1:]...)
 
 			// Save the updated note
-			if err := s.NoteRepo.Update(context.Background(), note); err != nil {
+			if err := s.noteRepo.Update(context.Background(), note); err != nil {
 				return fmt.Errorf("failed to update note connections: %v", err)
 			}
 
@@ -385,4 +386,45 @@ func (s *NoteService) UnlinkNotes(noteID, connectedNoteID uuid.UUID, userID uuid
 	}
 
 	return fmt.Errorf("connection not found")
+}
+
+// GetNotesForMindMap retrieves notes optimized for mind map visualization
+func (s *NoteService) GetNotesForMindMap(userID uuid.UUID) ([]contracts.MindMapNoteResponse, error) {
+	// Validate user ID
+	if userID == uuid.Nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	// Fetch notes from repository
+	notes, err := s.noteRepo.GetNotesForMindMap(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get notes for mind map: %v", err)
+	}
+
+	// Transform to contract response
+	var mindMapNotes []contracts.MindMapNoteResponse
+	for _, note := range notes {
+		// Create connections
+		var connections []contracts.MindMapNoteConnection
+		for i := range note.ConnectedNoteIDs {
+			connections = append(connections, contracts.MindMapNoteConnection{
+				NoteID:         note.ConnectedNoteIDs[i],
+				Title:          note.ConnectedNoteTitles[i],
+				ConnectionType: note.ConnectionTypes[i],
+			})
+		}
+
+		// Create mind map note response
+		mindMapNotes = append(mindMapNotes, contracts.MindMapNoteResponse{
+			ID:             note.ID,
+			Title:          note.Title,
+			Content:        note.Content,
+			Category:       note.Categories,
+			CreatedAt:      note.CreatedAt,
+			UpdatedAt:      note.UpdatedAt,
+			ConnectedNotes: connections,
+		})
+	}
+
+	return mindMapNotes, nil
 }
