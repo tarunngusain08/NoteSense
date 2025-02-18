@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -22,6 +23,13 @@ type KanbanColumns struct {
 	Todo       []models.Note
 	InProgress []models.Note
 	Done       []models.Note
+}
+
+// NoteConnection represents a connection between notes
+type NoteConnection struct {
+	NoteID         string `db:"note_id"`
+	Title          string `db:"title"`
+	ConnectionType string `db:"connection_type"`
 }
 
 func NewNoteRepository(db *gorm.DB) *NoteRepository {
@@ -159,4 +167,35 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 	}
 
 	return kanbanNotes, nil
+}
+
+// GetNotesForMindMap retrieves notes for mind map visualization with their connections
+func (r *NoteRepository) GetNotesForMindMap(userID uuid.UUID) ([]models.Note, error) {
+	query := `
+    SELECT 
+        id, 
+        title, 
+        content, 
+        created_at, 
+        updated_at, 
+        categories,
+        connected_note_ids,
+        connected_note_titles,
+        connection_types
+    FROM 
+        notes
+    WHERE 
+        user_id = $1
+    ORDER BY 
+        updated_at DESC
+    LIMIT 50
+    `
+
+	var notes []models.Note
+	err := r.db.Raw(query, userID).Scan(&notes).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch notes for mind map: %v", err)
+	}
+
+	return notes, nil
 }
