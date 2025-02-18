@@ -1,0 +1,71 @@
+.mind-map-page {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background-color: #f4f6f9;
+}
+
+.mind-map-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.mind-map-header svg {
+  margin-right: 10px;
+  color: #4A90E2;
+  font-size: 24px;
+}
+
+.mind-map-content {
+  display: flex;
+  gap: 20px;
+}
+
+.notes-sidebar {
+  width: 250px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.note-item {
+  cursor: pointer;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #f0f4f8;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.note-item:hover {
+  background-color: #e6f2ff;
+}
+
+.mind-map-visualization {
+  flex-grow: 1;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #4A90E2;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  font-size: 48px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
