@@ -138,10 +138,22 @@ func main() {
 	// Apply authentication middleware globally
 	r.Use(authMiddleware.ValidateTokenMiddleware)
 
+	// In your main routing setup
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}).Methods("GET")
+
 	// User routes
 	r.HandleFunc("/signup", userHandler.SignUpHandler).Methods("POST")
 	r.HandleFunc("/login", userHandler.LoginHandler).Methods("POST")
 	r.HandleFunc("/logout", userHandler.LogoutHandler).Methods("POST")
+
+	// Note Connection Routes
+	r.HandleFunc("/notes/mindmap", noteHandler.GetNotesMindmapHandler).Methods("GET")
+	r.HandleFunc("/notes/{id}/connections", noteHandler.GetNoteConnectionsHandler).Methods("GET")
+	r.HandleFunc("/notes/{id}/connect", noteHandler.ConnectNoteHandler).Methods("POST")
+	r.HandleFunc("/notes/{id}/unlink/{connectedNoteId}", noteHandler.UnlinkNoteHandler).Methods("DELETE")
 
 	// Note routes
 	r.HandleFunc("/notes", noteHandler.CreateNoteHandler).Methods("POST")
@@ -153,11 +165,6 @@ func main() {
 	r.HandleFunc("/notes/{id}", noteHandler.GetNoteHandler).Methods("GET") // Get single note
 	r.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
-
-	// Note Connection Routes
-	r.HandleFunc("/notes/{id}/connections", noteHandler.GetNoteConnectionsHandler).Methods("GET")
-	r.HandleFunc("/notes/{id}/connect", noteHandler.ConnectNoteHandler).Methods("POST")
-	r.HandleFunc("/notes/{id}/unlink/{connectedNoteId}", noteHandler.UnlinkNoteHandler).Methods("DELETE")
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
