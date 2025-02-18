@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from "framer-motion"
-import { Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip, Grid2X2, Kanban } from "lucide-react"
+import { 
+  Grid2X2, 
+  Kanban 
+} from 'lucide-react';
+import { 
+  Search, LogOut, Menu, Sparkles, Trash2, Tag, X, Paperclip 
+} from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
+import mindMapService from '../services/mindMapService';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   DragDropContext, 
@@ -57,7 +64,7 @@ export default function Notes() {
   const newNoteFileInputRef = useRef<HTMLInputElement>(null);
 
   // New Kanban-specific state
-  const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'kanban' | 'mindmap'>('grid');
   const [kanbanNotes, setKanbanNotes] = useState<{
     backlog: Note[];
     todo: Note[];
@@ -639,14 +646,38 @@ export default function Notes() {
     }
   };
 
-  const toggleViewMode = () => {
-    const newViewMode = viewMode === 'grid' ? 'kanban' : 'grid';
-    setViewMode(newViewMode);
-
-    // Fetch Kanban notes when switching to Kanban view
-    if (newViewMode === 'kanban') {
-      fetchKanbanNotes();
+  const fetchMindMapData = async () => {
+    try {
+      const mindMapNotes = await mindMapService.getUserMindMapNotes();
+      setNotes(mindMapNotes);
+    } catch (error) {
+      console.error('Failed to fetch mind map data', error);
+      toast.error('Failed to load mind map notes');
     }
+  };
+
+  const toggleViewMode = () => {
+    setViewMode(prevMode => {
+      const newMode = (() => {
+        switch(prevMode) {
+          case 'grid': return 'kanban';
+          case 'kanban': return 'mindmap';
+          case 'mindmap': return 'grid';
+          default: return 'grid';
+        }
+      })();
+
+      switch(newMode) {
+        case 'kanban':
+          fetchKanbanNotes();
+          break;
+        case 'mindmap':
+          fetchMindMapData();
+          break;
+      }
+
+      return newMode;
+    });
   };
 
   useEffect(() => {
@@ -940,17 +971,7 @@ export default function Notes() {
               "
             >
               <AnimatePresence mode="wait">
-                {viewMode === 'kanban' ? (
-                  <motion.div
-                    key="grid"
-                    initial={{ rotate: -180, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 180, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  >
-                    <Grid2X2 size={28} />
-                  </motion.div>
-                ) : (
+                {viewMode === 'grid' ? (
                   <motion.div
                     key="kanban"
                     initial={{ rotate: 180, opacity: 0 }}
@@ -959,6 +980,35 @@ export default function Notes() {
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     <Kanban size={28} />
+                  </motion.div>
+                ) : viewMode === 'kanban' ? (
+                  <motion.div
+                    key="mindmap"
+                    initial={{ rotate: 180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -180, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3a3 3 0 1 0 0 6 3 3 0 1 0 0-6z"/>
+                      <path d="M7 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4z"/>
+                      <path d="M17 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4z"/>
+                      <path d="M7 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4z"/>
+                      <path d="M17 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4z"/>
+                      <path d="M7 14l5-2"/>
+                      <path d="M12 10l5 2"/>
+                      <path d="M12 16l5-2"/>
+                    </svg>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="grid"
+                    initial={{ rotate: 180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -180, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <Grid2X2 size={28} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1144,6 +1194,20 @@ export default function Notes() {
                       ))}
                     </AnimatePresence>
                   </motion.div>
+                </motion.div>
+              ) : viewMode === 'mindmap' ? (
+                <motion.div
+                  key="mindmap-view"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 300, 
+                    damping: 20 
+                  }}
+                >
+                  {/* Mindmap view content */}
                 </motion.div>
               ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
