@@ -10,7 +10,7 @@ import {
   Droppable, 
   Draggable, 
   DropResult 
-} from 'react-beautiful-dnd';
+} from '@hello-pangea/dnd';
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
