@@ -101,6 +101,17 @@ const mindMapService = {
     }
   },
 
+  // Fetch initial mind map notes for the user
+  getUserMindMapNotes: async (): Promise<Note[]> => {
+    try {
+      const response = await api.get('/api/notes/mindmap');
+      return response.data.notes;
+    } catch (error) {
+      console.error('Failed to fetch mind map notes', error);
+      throw error;
+    }
+  },
+
   // Build a mind map from a root note
   buildMindMap: async (rootNoteId: string): Promise<MindMapGraph> => {
     try {
