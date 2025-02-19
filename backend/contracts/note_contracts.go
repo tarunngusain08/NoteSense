@@ -63,3 +63,8 @@ type SearchNotesRequest struct {
 	Categories []string `json:"categories,omitempty"`
 	UserID     string   `json:"userId"`
 }
+
+// MindmapNotesResponse represents notes and their connections for mindmap visualization
+type MindmapNotesResponse struct {
+	NoteConnections map[uuid.UUID][]uuid.UUID `json:"noteConnections"`
+}
