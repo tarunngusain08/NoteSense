@@ -2,6 +2,7 @@ import axios from "axios"
 import { clearAuthData } from './authService';
 
 const API_BASE_URL = "https://backend-99l1.onrender.com"
+// const API_BASE_URL = "http://localhost:8080"
 
 // Create an axios instance with default config
 const api = axios.create({

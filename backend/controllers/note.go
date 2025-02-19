@@ -342,3 +342,155 @@ func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(contracts.NotesResponse{Notes: notes})
 }
+
+// GetNoteConnectionsHandler handles retrieving all connections for a specific note
+func (h *NoteHandler) GetNoteConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get note ID from URL parameters
+	vars := mux.Vars(r)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get note from service to ensure user owns the note
+	note, err := h.NoteService.GetNoteByID(noteID, userID)
+	if err != nil {
+		if err.Error() == "note not found" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare connections response
+	connections := make([]contracts.Connection, 0)
+	for _, conn := range note.ConnectedNoteIDs {
+		connNoteID, err := uuid.Parse(conn)
+		if err == nil {
+			connections = append(connections, contracts.Connection{
+				NoteID:         connNoteID,
+				ConnectionType: "", // You might want to add logic to get connection type
+			})
+		}
+	}
+
+	// Return connections
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contracts.ConnectionResponse{
+		NoteID:      note.ID,
+		Connections: connections,
+	})
+}
+
+// ConnectNoteHandler handles creating a connection between notes
+func (h *NoteHandler) ConnectNoteHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get note ID from URL parameters
+	vars := mux.Vars(r)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Decode connection request
+	var req contracts.ConnectionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Parse connected note ID
+	connectedNoteID, err := uuid.Parse(req.ConnectedNoteID)
+	if err != nil {
+		http.Error(w, "Invalid connected note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Validate connection
+	if err := h.NoteService.ConnectNotes(noteID, connectedNoteID, req.ConnectionType, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Notes connected successfully",
+	})
+}
+
+// UnlinkNoteHandler handles removing a connection between notes
+func (h *NoteHandler) UnlinkNoteHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get note IDs from URL parameters
+	vars := mux.Vars(r)
+	noteID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	connectedNoteID, err := uuid.Parse(vars["connectedNoteId"])
+	if err != nil {
+		http.Error(w, "Invalid connected note ID", http.StatusBadRequest)
+		return
+	}
+
+	// Remove connection
+	if err := h.NoteService.UnlinkNotes(noteID, connectedNoteID, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Notes unlinked successfully",
+	})
+}
+
+// GetNotesMindmapHandler handles retrieving notes for mindmap visualization
+func (h *NoteHandler) GetNotesMindmapHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from token
+	userID, err := extractUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get notes for mindmap
+	mindmapNotes, err := h.NoteService.GetNotesMindmap(userID.String())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return notes for mindmap
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(mindmapNotes)
+}
