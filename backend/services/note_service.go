@@ -386,3 +386,23 @@ func (s *NoteService) UnlinkNotes(noteID, connectedNoteID uuid.UUID, userID uuid
 
 	return fmt.Errorf("connection not found")
 }
+
+// GetNotesMindmap retrieves notes for mindmap visualization
+func (s *NoteService) GetNotesMindmap(userIDStr string) (*contracts.MindmapNotesResponse, error) {
+	// Parse user ID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %v", err)
+	}
+
+	// Retrieve notes and connections for mindmap
+	noteConnections, err := s.NoteRepo.GetNotesMindmap(context.Background(), userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve notes for mindmap: %v", err)
+	}
+
+	// Create and return mindmap response
+	return &contracts.MindmapNotesResponse{
+		NoteConnections: noteConnections,
+	}, nil
+}
