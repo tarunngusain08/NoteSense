@@ -11,6 +11,7 @@ import {
   Draggable, 
   DropResult 
 } from 'react-beautiful-dnd';
+import MindMapView from "../components/MindMapView/MindMapView"
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
@@ -57,7 +58,7 @@ export default function Notes() {
   const newNoteFileInputRef = useRef<HTMLInputElement>(null);
 
   // New Kanban-specific state
-  const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'kanban' | 'mindmap'>('grid');
   const [kanbanNotes, setKanbanNotes] = useState<{
     backlog: Note[];
     todo: Note[];
@@ -639,14 +640,19 @@ export default function Notes() {
     }
   };
 
-  const toggleViewMode = () => {
-    const newViewMode = viewMode === 'grid' ? 'kanban' : 'grid';
-    setViewMode(newViewMode);
-
-    // Fetch Kanban notes when switching to Kanban view
-    if (newViewMode === 'kanban') {
-      fetchKanbanNotes();
-    }
+  const toggleView = () => {
+    setViewMode((prevMode) => {
+      switch (prevMode) {
+        case 'grid':
+          return 'kanban';
+        case 'kanban':
+          return 'mindmap';
+        case 'mindmap':
+          return 'grid';
+        default:
+          return 'grid';
+      }
+    });
   };
 
   useEffect(() => {
@@ -927,7 +933,7 @@ export default function Notes() {
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <motion.button
-              onClick={toggleViewMode}
+              onClick={toggleView}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="
@@ -940,7 +946,7 @@ export default function Notes() {
               "
             >
               <AnimatePresence mode="wait">
-                {viewMode === 'kanban' ? (
+                {viewMode === 'grid' && (
                   <motion.div
                     key="grid"
                     initial={{ rotate: -180, opacity: 0 }}
@@ -948,9 +954,10 @@ export default function Notes() {
                     exit={{ rotate: 180, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
-                    <Grid2X2 size={28} />
+                    <Kanban size={28} />
                   </motion.div>
-                ) : (
+                )}
+                {viewMode === 'kanban' && (
                   <motion.div
                     key="kanban"
                     initial={{ rotate: 180, opacity: 0 }}
@@ -958,14 +965,25 @@ export default function Notes() {
                     exit={{ rotate: -180, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
-                    <Kanban size={28} />
+                    <Sparkles className="w-6 h-6" />
+                  </motion.div>
+                )}
+                {viewMode === 'mindmap' && (
+                  <motion.div
+                    key="mindmap"
+                    initial={{ rotate: 180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -180, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <Grid2X2 className="w-6 h-6" />
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.button>
 
             <AnimatePresence mode="wait">
-              {viewMode === 'grid' ? (
+              {viewMode === 'grid' && (
                 <motion.div
                   key="grid-view"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1145,7 +1163,8 @@ export default function Notes() {
                     </AnimatePresence>
                   </motion.div>
                 </motion.div>
-              ) : (
+              )}
+              {viewMode === 'kanban' && (
                 <DragDropContext onDragEnd={onDragEnd}>
                   <div className="grid grid-cols-4 gap-4">
                     {Object.entries(kanbanNotes).map(([status, notes], columnIndex) => (
@@ -1279,6 +1298,9 @@ export default function Notes() {
                     ))}
                   </div>
                 </DragDropContext>
+              )}
+              {viewMode === 'mindmap' && (
+                <MindMapView notes={notes} />
               )}
             </AnimatePresence>
           </main>
