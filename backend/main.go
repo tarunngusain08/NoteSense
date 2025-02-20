@@ -117,10 +117,12 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	noteRepo := repositories.NewNoteRepository(db)
 	tokenBlacklistRepo := repositories.NewTokenBlacklistRepository(db)
+	fileMetadataRepo := repositories.NewFileMetadataRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	noteService := services.NewNoteService(noteRepo)
+	fileUploadService := services.NewFileUploadService(fileMetadataRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(userRepo, tokenBlacklistRepo)
@@ -131,6 +133,7 @@ func main() {
 		AuthorizationService: authMiddleware,
 	}
 	noteHandler := &controllers.NoteHandler{NoteService: noteService}
+	fileHandler := controllers.NewFileHandler(fileUploadService)
 
 	// Set up the router
 	r := mux.NewRouter()
@@ -160,6 +163,9 @@ func main() {
 	r.HandleFunc("/notes/{id}", noteHandler.GetNoteHandler).Methods("GET") // Get single note
 	r.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PATCH")
 	r.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+
+	// File upload route
+	r.HandleFunc("/api/files", fileHandler.UploadFileHandler).Methods("POST")
 
 	// Enable CORS with more permissive settings
 	corsHandler := handlers.CORS(
