@@ -160,3 +160,38 @@ func (r *NoteRepository) GetKanbanNotes(userID string) (*KanbanColumns, error) {
 
 	return kanbanNotes, nil
 }
+
+// GetNotesMindmap retrieves notes and their connections for mindmap visualization
+func (r *NoteRepository) GetNotesMindmap(ctx context.Context, userID uuid.UUID) (map[uuid.UUID][]uuid.UUID, error) {
+	var notes []models.Note
+
+	// Retrieve all notes for the user
+	result := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&notes)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Create a map of note connections
+	noteConnections := make(map[uuid.UUID][]uuid.UUID)
+	for _, note := range notes {
+		// Convert connected note IDs to UUIDs
+		var connectedNoteIDs []uuid.UUID
+		for _, idStr := range note.ConnectedNoteIDs {
+			connID, err := uuid.Parse(idStr)
+			if err == nil {
+				connectedNoteIDs = append(connectedNoteIDs, connID)
+			}
+		}
+
+		// Only add to map if there are connections
+		if len(connectedNoteIDs) > 0 {
+			noteConnections[note.ID] = connectedNoteIDs
+		}
+	}
+
+	return noteConnections, nil
+}

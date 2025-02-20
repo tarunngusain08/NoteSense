@@ -1,6 +1,28 @@
 package contracts
 
-import "NoteSense/models"
+import (
+	"NoteSense/models"
+
+	"github.com/google/uuid"
+)
+
+// ConnectionRequest represents the payload for creating a note connection
+type ConnectionRequest struct {
+	ConnectedNoteID string `json:"connectedNoteId"`
+	ConnectionType  string `json:"connectionType"`
+}
+
+// ConnectionResponse represents the response for note connections
+type ConnectionResponse struct {
+	NoteID      uuid.UUID    `json:"noteId"`
+	Connections []Connection `json:"connections"`
+}
+
+// Connection represents a single note connection
+type Connection struct {
+	NoteID         uuid.UUID `json:"noteId"`
+	ConnectionType string    `json:"connectionType"`
+}
 
 // NoteRequest represents the structure for note creation/update requests
 type NoteRequest struct {
@@ -40,4 +62,9 @@ type SearchNotesRequest struct {
 	Query      string   `json:"q"`
 	Categories []string `json:"categories,omitempty"`
 	UserID     string   `json:"userId"`
+}
+
+// MindmapNotesResponse represents notes and their connections for mindmap visualization
+type MindmapNotesResponse struct {
+	NoteConnections map[uuid.UUID][]uuid.UUID `json:"noteConnections"`
 }
