@@ -1,81 +1,72 @@
 package services
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
+
+	speech "cloud.google.com/go/speech/apiv1"
+	"cloud.google.com/go/speech/apiv1/speechpb"
+	"google.golang.org/api/option"
 )
 
-func (s *FileUploadService) processSpeechToText(filePath string) (string, error) {
-	// Validate file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return "", fmt.Errorf("audio file does not exist: %v", err)
-	}
-
-	// Supported audio extensions
-	supportedExtensions := map[string]bool{
-		".mp3":  true,
-		".wav":  true,
-		".ogg":  true,
-		".m4a":  true,
-		".flac": true,
-	}
-
-	// Check file extension
-	ext := strings.ToLower(filepath.Ext(filePath))
-	if !supportedExtensions[ext] {
-		return "", fmt.Errorf("unsupported audio format: %s", ext)
-	}
-
-	// Generate a temporary output text file
-	txtPath := filepath.Join(
-		filepath.Dir(filePath),
-		fmt.Sprintf("%s_transcript.txt", filepath.Base(filePath)),
-	)
-	defer os.Remove(txtPath)
-
-	// Use Google's Speech Recognition via FFmpeg (requires internet)
-	cmd := exec.Command("ffmpeg",
-		"-i", filePath, // Input audio file
-		"-acodec", "pcm_s16le",
-		"-ar", "16000", // Resample to 16kHz
-		"-ac", "1", // Convert to mono
-		"-f", "wav", // Output WAV format
-		"pipe:1", // Output to stdout
-	)
-
-	// Transcribe using basic text extraction
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Audio processing error: %v", err)
-		return "", fmt.Errorf("failed to process audio: %v", err)
-	}
-
-	// Basic text extraction (placeholder)
-	transcribedText := extractTextFromAudioBytes(output)
-
-	// Log the transcription result
-	log.Printf("Transcribed Text: %s", transcribedText)
-
-	return transcribedText, nil
+type SpeechToTextService struct {
+	client *speech.Client
 }
 
-// extractTextFromAudioBytes provides a simple placeholder for text extraction
-func extractTextFromAudioBytes(audioBytes []byte) string {
-	// In a real-world scenario, you'd use more sophisticated speech recognition
-	// This is a very basic placeholder
-	words := []string{
-		"hello", "world", "audio", "text", "extraction",
-		"sample", "transcription", "demonstration",
+func NewSpeechToTextService(credentialsPath string) (*SpeechToTextService, error) {
+	ctx := context.Background()
+
+	// Create Speech-to-Text client
+	client, err := speech.NewClient(ctx,
+		option.WithCredentialsFile(credentialsPath),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create speech client: %v", err)
 	}
 
-	// Generate a pseudo-random "transcription"
-	if len(audioBytes) > 0 {
-		return strings.Join(words[:len(audioBytes)%len(words)+1], " ")
+	return &SpeechToTextService{
+		client: client,
+	}, nil
+}
+
+func (s *SpeechToTextService) TranscribeAudio(audioPath string) (string, error) {
+	ctx := context.Background()
+
+	// Read audio file content
+	audioBytes, err := os.ReadFile(audioPath)
+	if err != nil {
+		return "", fmt.Errorf("unable to read audio file: %v", err)
 	}
 
-	return "No text could be extracted from the audio file"
+	// Configure recognition request
+	req := &speechpb.RecognizeRequest{
+		Config: &speechpb.RecognitionConfig{
+			Encoding:        speechpb.RecognitionConfig_LINEAR16,
+			SampleRateHertz: 16000,
+			LanguageCode:    "en-US",
+		},
+		Audio: &speechpb.RecognitionAudio{
+			AudioSource: &speechpb.RecognitionAudio_Content{Content: audioBytes},
+		},
+	}
+
+	// Perform speech recognition
+	resp, err := s.client.Recognize(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("speech recognition failed: %v", err)
+	}
+
+	// Extract transcribed text
+	if len(resp.Results) > 0 && len(resp.Results[0].Alternatives) > 0 {
+		return resp.Results[0].Alternatives[0].Transcript, nil
+	}
+
+	return "", fmt.Errorf("no transcription results")
+}
+
+func (s *SpeechToTextService) Close() {
+	if s.client != nil {
+		s.client.Close()
+	}
 }
