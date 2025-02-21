@@ -14,7 +14,6 @@ func NewFileMetadataRepository(db *gorm.DB) *FileMetadataRepository {
 	return &FileMetadataRepository{db: db}
 }
 
-func (r *FileMetadataRepository) Create(metadata *models.FileMetadata) (*models.FileMetadata, error) {
-	result := r.db.Create(metadata)
-	return metadata, result.Error
+func (r *FileMetadataRepository) Create(metadata *models.FileMetadata) error {
+	return r.db.Create(metadata).Error
 }
