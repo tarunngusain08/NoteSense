@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -11,68 +10,74 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/otiai10/gosseract/v2"
 
 	"NoteSense/models"
 	"NoteSense/repositories"
 )
 
 type FileUploadService struct {
-	fileRepo *repositories.FileMetadataRepository
+	fileMetadataRepo *repositories.FileMetadataRepository
+	speechService    *SpeechToTextService // Speech-to-text dependency
+	ocrService       *OCRService          // Add OCR service dependency
 }
 
-func NewFileUploadService(repo *repositories.FileMetadataRepository) *FileUploadService {
+// Update the constructor to accept OCRService
+func NewFileUploadService(
+	fileMetadataRepo *repositories.FileMetadataRepository,
+	speechService *SpeechToTextService,
+	ocrService *OCRService, // Add this parameter
+) *FileUploadService {
 	return &FileUploadService{
-		fileRepo: repo,
+		fileMetadataRepo: fileMetadataRepo,
+		speechService:    speechService,
+		ocrService:       ocrService, // Set the OCR service
 	}
 }
 
 func (s *FileUploadService) SaveFile(file *multipart.FileHeader, userID uuid.UUID) (*models.FileMetadata, error) {
-	// Validate file type
-	fileType := s.determineFileType(file.Filename)
-	if fileType == "unsupported" {
-		return nil, fmt.Errorf("unsupported file type")
+	// Validate user
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("invalid user ID")
 	}
 
 	// Create upload directory if not exists
-	uploadDir := "./uploads"
+	uploadDir := "./../uploadedFiles"
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create upload directory: %v", err)
 	}
 
 	// Generate unique filename
-	uniqueFilename := fmt.Sprintf("%s%s", uuid.New().String(), filepath.Ext(file.Filename))
-	filePath := filepath.Join(uploadDir, uniqueFilename)
+	fileExt := filepath.Ext(file.Filename)
+	uniqueFileName := fmt.Sprintf("%s%s", uuid.New().String(), fileExt)
+	filePath := filepath.Join(uploadDir, uniqueFileName)
 
-	// Save file
-	src, err := file.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer src.Close()
-
+	// Save uploaded file
 	dst, err := os.Create(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create file: %v", err)
 	}
 	defer dst.Close()
 
-	_, err = io.Copy(dst, src)
+	src, err := file.Open()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open uploaded file: %v", err)
+	}
+	defer src.Close()
+
+	if _, err = io.Copy(dst, src); err != nil {
+		return nil, fmt.Errorf("failed to save file: %v", err)
 	}
 
-	// Process file based on type
-	extractedText := ""
+	// Determine file type
+	fileType := s.determineFileType(file.Filename)
+
+	// Extract text based on file type
+	var extractedText string
 	switch fileType {
 	case "image":
-		extractedText, err = s.processOCR(filePath)
+		extractedText, _ = s.ocrService.ProcessImage(filePath)
 	case "audio":
-		extractedText, err = s.processSpeechToText(filePath)
-	}
-
-	if err != nil {
-		log.Printf("Processing error: %v", err)
+		extractedText, _ = s.speechService.TranscribeAudio(filePath)
 	}
 
 	// Create file metadata
@@ -86,9 +91,12 @@ func (s *FileUploadService) SaveFile(file *multipart.FileHeader, userID uuid.UUI
 	}
 
 	// Save metadata to database
-	return s.fileRepo.Create(fileMetadata)
-}
+	if err := s.fileMetadataRepo.Create(fileMetadata); err != nil {
+		return nil, fmt.Errorf("failed to save file metadata: %v", err)
+	}
 
+	return fileMetadata, nil
+}
 func (s *FileUploadService) determineFileType(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 
@@ -108,47 +116,4 @@ func (s *FileUploadService) determineFileType(filename string) string {
 	default:
 		return "unsupported"
 	}
-}
-
-func (s *FileUploadService) processOCR(filePath string) (string, error) {
-	client := gosseract.NewClient()
-
-	defer client.Close()
-
-	// Advanced configuration
-	client.SetLanguage("eng") // English
-	client.SetPageSegMode(gosseract.PSM_AUTO)
-	client.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-
-	client.SetImage(filePath)
-
-	// Optional: Preprocessing for better accuracy
-	// You might want to add image preprocessing steps here
-
-	text, err := client.Text()
-	if err != nil {
-		return "", err
-	}
-
-	return text, nil
-}
-
-func (s *FileUploadService) processSpeechToText(filePath string) (string, error) {
-
-	speechService, err := NewSpeechToTextService("/path/to/google-credentials.json")
-
-	if err != nil {
-		log.Printf("Failed to initialize speech-to-text service: %v", err)
-		return "", err
-	}
-	defer speechService.Close()
-
-	// Transcribe audio file
-	transcription, err := speechService.TranscribeAudio(filePath)
-	if err != nil {
-		log.Printf("Audio transcription failed: %v", err)
-		return "", err
-	}
-
-	return transcription, nil
 }
