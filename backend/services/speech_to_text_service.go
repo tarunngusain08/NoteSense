@@ -1,72 +1,44 @@
 package services
 
 import (
-	"context"
 	"fmt"
-	"os"
-
-	speech "cloud.google.com/go/speech/apiv1"
-	"cloud.google.com/go/speech/apiv1/speechpb"
-	"google.golang.org/api/option"
+	"log"
+	"os/exec"
+	"path/filepath"
+	"strings"
 )
 
-type SpeechToTextService struct {
-	client *speech.Client
-}
+type SpeechToTextService struct{}
 
-func NewSpeechToTextService(credentialsPath string) (*SpeechToTextService, error) {
-	ctx := context.Background()
-
-	// Create Speech-to-Text client
-	client, err := speech.NewClient(ctx,
-		option.WithCredentialsFile(credentialsPath),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create speech client: %v", err)
-	}
-
-	return &SpeechToTextService{
-		client: client,
-	}, nil
+func NewSpeechToTextService() *SpeechToTextService {
+	return &SpeechToTextService{}
 }
 
 func (s *SpeechToTextService) TranscribeAudio(audioPath string) (string, error) {
-	ctx := context.Background()
-
-	// Read audio file content
-	audioBytes, err := os.ReadFile(audioPath)
+	// Use absolute path to the script
+	scriptPath, err := filepath.Abs("./scripts/speech_to_text.py")
 	if err != nil {
-		return "", fmt.Errorf("unable to read audio file: %v", err)
+		return "", fmt.Errorf("failed to get script path: %v", err)
 	}
 
-	// Configure recognition request
-	req := &speechpb.RecognizeRequest{
-		Config: &speechpb.RecognitionConfig{
-			Encoding:        speechpb.RecognitionConfig_LINEAR16,
-			SampleRateHertz: 16000,
-			LanguageCode:    "en-US",
-		},
-		Audio: &speechpb.RecognitionAudio{
-			AudioSource: &speechpb.RecognitionAudio_Content{Content: audioBytes},
-		},
-	}
+	cmd := exec.Command("python3", scriptPath, audioPath)
+	cmd.Dir = filepath.Dir(scriptPath) // Set working directory
 
-	// Perform speech recognition
-	resp, err := s.client.Recognize(ctx, req)
+	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("speech recognition failed: %v", err)
+		log.Printf("Speech-to-Text error: %v", err)
+
+		// Check for more detailed error information
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			log.Printf("Stderr: %s", string(exitErr.Stderr))
+		}
+
+		return "", fmt.Errorf("speech transcription failed: %v", err)
 	}
 
-	// Extract transcribed text
-	if len(resp.Results) > 0 && len(resp.Results[0].Alternatives) > 0 {
-		return resp.Results[0].Alternatives[0].Transcript, nil
-	}
+	// Trim whitespace and newlines
+	transcription := strings.TrimSpace(string(output))
 
-	return "", fmt.Errorf("no transcription results")
-}
-
-func (s *SpeechToTextService) Close() {
-	if s.client != nil {
-		s.client.Close()
-	}
+	log.Printf("Transcribed Text: %s", transcription)
+	return transcription, nil
 }
