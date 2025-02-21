@@ -108,7 +108,7 @@ func main() {
 	}()
 
 	// Automigrate the models
-	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Note{}, &models.TokenBlacklist{}, &models.FileMetadata{}); err != nil {
 		log.Fatal("Error during migration:", err)
 	}
 	log.Println("Database migration completed")
@@ -119,10 +119,18 @@ func main() {
 	tokenBlacklistRepo := repositories.NewTokenBlacklistRepository(db)
 	fileMetadataRepo := repositories.NewFileMetadataRepository(db)
 
+	// Initialize Speech-to-Text Service
+	speechService := services.NewSpeechToTextService()
+	ocrService := services.NewOCRService()
+
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	noteService := services.NewNoteService(noteRepo)
-	fileUploadService := services.NewFileUploadService(fileMetadataRepo)
+	fileUploadService := services.NewFileUploadService(
+		fileMetadataRepo,
+		speechService,
+		ocrService,
+	)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(userRepo, tokenBlacklistRepo)
