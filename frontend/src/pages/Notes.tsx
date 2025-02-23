@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
 import { Toaster, toast } from 'react-hot-toast';
-import axios from 'axios';
 import { 
   DragDropContext, 
   Droppable, 
@@ -1099,13 +1098,13 @@ export default function Notes() {
 
                           <div className="mt-4">
                             <div className="flex flex-wrap gap-2 mb-2">
-                              {note.categories.map((category) => (
-                                <motion.span
-                                  key={category}
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  exit={{ scale: 0 }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs"
+                              {note.categories && note.categories.length > 0 && note.categories.map((category) => (
+                              <motion.span
+                                key={category}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                exit={{ scale: 0 }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs"
                                 >
                                   {category}
                                   <button
@@ -1405,7 +1404,7 @@ export default function Notes() {
                     variants={contentVariants}
                     className="p-6 pt-0 flex flex-wrap gap-2"
                   >
-                    {selectedNote.categories.map((category) => (
+                    {selectedNote.categories && selectedNote.categories.length > 0 && selectedNote.categories.map((category) => (
                       <motion.span
                         key={category}
                         initial={{ scale: 0 }}
