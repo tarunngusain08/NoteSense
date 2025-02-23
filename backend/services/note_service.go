@@ -85,16 +85,16 @@ func (s *NoteService) UpdateNote(req *contracts.UpdateNoteRequest, userID uuid.U
 		Status:     existingNote.Status,
 	}
 
+	if req.Title != "" {
+		updateData.Title = req.Title
+	}
+
 	if req.Content != "" {
 		updateData.Content = req.Content
 	}
 
 	if req.Categories != nil {
 		updateData.Categories = req.Categories
-	}
-
-	if req.Status != "" {
-		updateData.Status = req.Status
 	}
 
 	// Update note in repository
