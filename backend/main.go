@@ -130,6 +130,7 @@ func main() {
 		fileMetadataRepo,
 		speechService,
 		ocrService,
+		noteService,
 	)
 
 	// Initialize middleware
@@ -140,7 +141,7 @@ func main() {
 		UserService:          userService,
 		AuthorizationService: authMiddleware,
 	}
-	noteHandler := &controllers.NoteHandler{NoteService: noteService}
+	noteHandler := controllers.NewNoteHandler(noteService)
 	fileHandler := controllers.NewFileHandler(fileUploadService)
 
 	// Set up the router
