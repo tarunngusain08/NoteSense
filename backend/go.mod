@@ -5,12 +5,10 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	github.com/alphacep/vosk-api/go v0.3.50
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
-	github.com/otiai10/gosseract/v2 v2.4.1
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
