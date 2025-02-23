@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import noteService, { type Note, type CreateNoteRequest } from "../services/noteService"
 import { Toaster, toast } from 'react-hot-toast';
+import axios from 'axios';
 import { 
   DragDropContext, 
   Droppable, 
@@ -12,6 +13,7 @@ import {
   DropResult 
 } from 'react-beautiful-dnd';
 import MindMapView from "../components/MindMapView/MindMapView"
+import fileService from '../services/fileService';
 
 const noteEmojis = ["📝", "✍️", "📚", "💭", "💡", "🎯", "📌", "🌟", "✨", "📖"]
 const defaultCategories = ["Personal 👤", "Work 💼", "Ideas 💭", "Tasks 📋", "Study 📚"]
@@ -36,6 +38,7 @@ export default function Notes() {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [showNewNoteModal, setShowNewNoteModal] = useState(false)
+  const [noteId, setNoteId] = useState<string>("");
   const [newNote, setNewNote] = useState<CreateNoteRequest>({
     title: "",
     content: "",
@@ -167,6 +170,7 @@ export default function Notes() {
         categories: createdNote.categories,
       })
       setShowNewNoteModal(true)
+      setNoteId(createdNote.id);
 
       // Set up periodic auto-save
       const interval = setInterval(async () => {
@@ -209,6 +213,7 @@ export default function Notes() {
     // Reset states
     setShowNewNoteModal(false)
     setCurrentNoteId(null)
+    setNoteId("")
     setNewNote({
       title: "",
       content: "",
@@ -431,6 +436,7 @@ export default function Notes() {
   const handleNoteClick = (note: Note) => {
     setSelectedNote(note);
     setShowNoteModal(true);
+    setNoteId(note.id);
   };
 
   const closeNoteModal = () => {
@@ -606,14 +612,27 @@ export default function Notes() {
   };
 
   // File change handler
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, isNewNote: boolean) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, isNewNote: boolean) => {
     const files = event.target.files;
     if (files) {
       const fileList = Array.from(files);
-      if (isNewNote) {
-        setNewNoteAttachments(prev => [...prev, ...fileList]);
-      } else {
-        setSelectedNoteAttachments(prev => [...prev, ...fileList]);
+
+      try {
+        // Call the upload API
+        const response = await fileService.uploadFiles(fileList, noteId);
+
+        // Handle response (e.g., update state or notify user)
+        console.log('Upload successful:', response);
+
+        if (isNewNote) {
+          setNewNoteAttachments(prev => [...prev, ...fileList]);
+        } else {
+          setSelectedNoteAttachments(prev => [...prev, ...fileList]);
+        }
+      } 
+      catch (error) {
+        console.error('Error uploading files:', error);
+        // Handle error (e.g., notify user)
       }
     }
   };
@@ -785,6 +804,7 @@ export default function Notes() {
   const handleNoteCardClick = (note: Note) => {
     setSelectedNote(note);
     setShowNoteModal(true);
+    setNoteId(note.id);
   };
 
   if (isLoading) {
@@ -1034,6 +1054,7 @@ export default function Notes() {
                           onClick={() => {
                             setSelectedNote(note)
                             setShowNoteModal(true)
+                            setNoteId(note.id);
                           }}
                           className="bg-white/70 backdrop-blur-sm rounded-lg shadow-sm p-6 transform transition-all duration-200 cursor-pointer"
                         >
