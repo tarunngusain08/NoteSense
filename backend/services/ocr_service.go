@@ -63,21 +63,13 @@ func (s *OCRService) ProcessImage(imagePath string) (string, error) {
 	// Trim whitespace and newlines
 	text := strings.TrimSpace(string(output))
 
-	// log.Printf("Extracted Text: %s", text)
-	// return text, nil
-	enrichedText, err := s.enrichText(text)
-	if err != nil {
-		log.Printf("Text enrichment error: %v", err)
-		// Use original text if enrichment fails
-		enrichedText = text
-	}
-
-	return enrichedText, nil
+	log.Printf("Extracted Text: %s", text)
+	return text, nil
 }
 
 func (s *OCRService) enrichText(text string) (string, error) {
 	// Path to advanced enrichment script
-	log.Printf("enrichText executing with text: %s", text)
+	// log.Printf("enrichText executing with text: %s", text)
 	scriptPath, err := filepath.Abs("./scripts/advanced_ocr_enrichment.py")
 	if err != nil {
 		return "", fmt.Errorf("failed to get script path: %v", err)
