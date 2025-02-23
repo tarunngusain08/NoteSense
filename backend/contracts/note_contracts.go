@@ -76,4 +76,5 @@ type UpdateNoteRequest struct {
 	Content    string    `json:"content"`
 	Categories []string  `json:"categories" validate:"omitempty,dive,min=1,max=50"`
 	Status     string    `json:"status" validate:"omitempty,oneof=draft completed archived"`
+	Priority   *int      `json:"priority" validate:"omitempty,min=0,max=5"`
 }
