@@ -19,6 +19,7 @@ def transcribe_audio(audio_path):
         return f"Unexpected error: {e}"
 
 if __name__ == "__main__":
+
     if len(sys.argv) < 2:
         print("Please provide an audio file path")
         sys.exit(1)
