@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"NoteSense/services"
+
+	"github.com/google/uuid"
 )
 
 type FileHandler struct {
@@ -52,6 +54,13 @@ func (h *FileHandler) UploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	noteId, err := uuid.Parse(r.FormValue("noteId"))
+	if err != nil {
+		log.Println("[UploadFileHandler] Invalid note ID")
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
@@ -66,7 +75,7 @@ func (h *FileHandler) UploadFileHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Save file
-	metadata, err := h.uploadService.SaveFile(header, userID)
+	metadata, err := h.uploadService.SaveFile(header, userID, noteId)
 	if err != nil {
 		log.Printf("File upload error: %v", err)
 		http.Error(w, "Failed to upload file", http.StatusInternalServerError)
