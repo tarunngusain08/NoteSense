@@ -45,6 +45,7 @@ pip install pytesseract
 pip install Pillow
 pip install language-tool-python
 pip install pyspellchecker
+pip install SpeechRecognition
 
 # Optional: Install additional NLP libraries
 pip install transformers
