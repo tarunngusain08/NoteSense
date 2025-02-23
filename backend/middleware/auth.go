@@ -67,8 +67,8 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*models.User, error) {
 	})
 
 	if err != nil {
-		log.Println("invalid token")
-		fmt.Println("invalid token: ", err.Error())
+		// log.Println("invalid token")
+		// fmt.Println("invalid token: ", err.Error())
 		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 

@@ -26,11 +26,11 @@ type Connection struct {
 
 // NoteRequest represents the structure for note creation/update requests
 type NoteRequest struct {
-	Title      *string   `json:"title,omitempty"`
-	Content    *string   `json:"content,omitempty"`
-	Categories *[]string `json:"categories,omitempty"`
-	Status     *string   `json:"status,omitempty"`
-	UserID     string    `json:"userId"`
+	Title      string   `json:"title,omitempty"`
+	Content    string   `json:"content,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+	Status     string   `json:"status,omitempty"`
+	UserID     string   `json:"userId"`
 }
 
 // NoteResponse represents the response for note operations
@@ -67,4 +67,14 @@ type SearchNotesRequest struct {
 // MindmapNotesResponse represents notes and their connections for mindmap visualization
 type MindmapNotesResponse struct {
 	NoteConnections map[uuid.UUID][]uuid.UUID `json:"noteConnections"`
+}
+
+// UpdateNoteRequest defines the structure for updating a note
+type UpdateNoteRequest struct {
+	NoteID     uuid.UUID `json:"noteId" validate:"required"`
+	Title      string    `json:"title" validate:"omitempty,min=1,max=255"`
+	Content    string    `json:"content"`
+	Categories []string  `json:"categories" validate:"omitempty,dive,min=1,max=50"`
+	Status     string    `json:"status" validate:"omitempty,oneof=draft completed archived"`
+	Priority   *int      `json:"priority" validate:"omitempty,min=0,max=5"`
 }

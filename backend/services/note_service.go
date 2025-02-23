@@ -61,16 +61,23 @@ func (s *NoteService) GetNotesByUserID(userID string) ([]models.Note, error) {
 }
 
 // UpdateNote updates an existing note
-func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *string, categories *[]string, status *string, userID uuid.UUID) (*models.Note, error) {
+func (s *NoteService) UpdateNote(req *contracts.UpdateNoteRequest, userID uuid.UUID) (*models.Note, error) {
+	// Validate input
+	// write defer method for panic recovery
+
+	if req.NoteID == uuid.Nil {
+		return nil, fmt.Errorf("invalid note ID")
+	}
+
 	// Retrieve existing note to get UserID and set the ID
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	existingNote, err := s.NoteRepo.GetByID(req.NoteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
 
 	// Prepare update data with existing values
 	updateData := models.Note{
-		ID:         noteID,
+		ID:         req.NoteID,
 		UserID:     existingNote.UserID,
 		Title:      existingNote.Title,
 		Content:    existingNote.Content,
@@ -78,25 +85,16 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 		Status:     existingNote.Status,
 	}
 
-	// Update fields if provided
-	if title != nil {
-		if *title == "" {
-			// return nil, fmt.Errorf("title cannot be empty")
-			*title = "Untitled"
-		}
-		updateData.Title = *title
+	if req.Title != "" {
+		updateData.Title = req.Title
 	}
 
-	if content != nil {
-		updateData.Content = *content
+	if req.Content != "" {
+		updateData.Content = req.Content
 	}
 
-	if categories != nil {
-		updateData.Categories = *categories
-	}
-
-	if status != nil {
-		updateData.Status = *status
+	if req.Categories != nil {
+		updateData.Categories = req.Categories
 	}
 
 	// Update note in repository
@@ -106,7 +104,7 @@ func (s *NoteService) UpdateNote(noteID uuid.UUID, title *string, content *strin
 	}
 
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	updatedNote, err := s.NoteRepo.GetByID(req.NoteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
@@ -123,7 +121,7 @@ func (s *NoteService) GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*models.N
 		return nil, fmt.Errorf("user ID is required")
 	}
 
-	note, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	note, err := s.NoteRepo.GetByID(noteID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +141,7 @@ func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	}
 
 	// First, retrieve the note to return
-	note, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	note, err := s.NoteRepo.GetByID(noteID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve note: %v", err)
 	}
@@ -152,7 +150,7 @@ func (s *NoteService) DeleteNote(noteID uuid.UUID, userID uuid.UUID) error {
 	}
 
 	// Delete note from repository
-	if err := s.NoteRepo.Delete(context.Background(), noteID, userID); err != nil {
+	if err := s.NoteRepo.Delete(noteID, userID); err != nil {
 		return fmt.Errorf("failed to delete note: %v", err)
 	}
 
@@ -235,7 +233,7 @@ func (s *NoteService) UpdateNoteState(noteID uuid.UUID, req *contracts.UpdateNot
 // UpdateNoteStateAndPriority updates the state and/or priority of a note
 func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *string, priority *int, userID uuid.UUID) (*models.Note, error) {
 	// Retrieve existing note
-	existingNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	existingNote, err := s.NoteRepo.GetByID(noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing note: %v", err)
 	}
@@ -288,7 +286,7 @@ func (s *NoteService) UpdateNoteStateAndPriority(noteID uuid.UUID, status *strin
 	}
 
 	// Retrieve and return the updated note
-	updatedNote, err := s.NoteRepo.GetByID(context.Background(), noteID, userID)
+	updatedNote, err := s.NoteRepo.GetByID(noteID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated note: %v", err)
 	}
