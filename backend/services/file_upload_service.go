@@ -169,5 +169,5 @@ func (s *FileUploadService) enrichText(text string) (string, error) {
 		return "", fmt.Errorf("text enrichment failed: %v", err)
 	}
 
-	return strings.TrimSpace(string(output)), nil
+	return strings.TrimSpace(string(output))[23:], nil
 }
