@@ -66,27 +66,3 @@ func (s *OCRService) ProcessImage(imagePath string) (string, error) {
 	log.Printf("Extracted Text: %s", text)
 	return text, nil
 }
-
-func (s *OCRService) enrichText(text string) (string, error) {
-	// Path to advanced enrichment script
-	// log.Printf("enrichText executing with text: %s", text)
-	scriptPath, err := filepath.Abs("./scripts/advanced_ocr_enrichment.py")
-	if err != nil {
-		return "", fmt.Errorf("failed to get script path: %v", err)
-	}
-
-	// Path to virtual environment python executable
-	pythonPath := filepath.Join(filepath.Dir(scriptPath), "venv", "bin", "python3")
-
-	// Construct command to run enrichment script
-	cmd := exec.Command(pythonPath, scriptPath, text)
-	cmd.Dir = filepath.Dir(scriptPath)
-
-	// Capture output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("text enrichment failed: %v", err)
-	}
-
-	return strings.TrimSpace(string(output)), nil
-}
