@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -21,8 +22,13 @@ func (s *SpeechToTextService) TranscribeAudio(audioPath string) (string, error) 
 		return "", fmt.Errorf("failed to get script path: %v", err)
 	}
 
-	cmd := exec.Command("python3", scriptPath, audioPath)
-	cmd.Dir = filepath.Dir(scriptPath) // Set working directory
+	// print current working directory
+	pythonPath := os.Getenv("PYTHON_VENV_PATH")
+	if pythonPath == "" {
+		return "", fmt.Errorf("PYTHON_VENV_PATH environment variable not set")
+	}
+	cmd := exec.Command(pythonPath, scriptPath, audioPath)
+	cmd.Dir = "../uploadedFiles" // Set working directory
 
 	output, err := cmd.Output()
 	if err != nil {
