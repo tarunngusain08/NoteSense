@@ -121,7 +121,7 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Decode request body
-	var req contracts.NoteRequest
+	var req contracts.UpdateNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -135,14 +135,9 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.NoteID = noteID
 	// Update note
-	note, err := h.NoteService.UpdateNote(&contracts.UpdateNoteRequest{
-		NoteID:     noteID,
-		Title:      req.Title,
-		Content:    req.Content,
-		Categories: req.Categories,
-		Status:     req.Status,
-	}, userID)
+	note, err := h.NoteService.UpdateNote(&req, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
