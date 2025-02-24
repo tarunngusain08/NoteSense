@@ -1,8 +1,8 @@
 import axios from "axios"
 import { clearAuthData } from './authService';
 
-const API_BASE_URL = "http://localhost:8080"
-// const API_BASE_URL = "https://notesense-backend.onrender.com";
+// const API_BASE_URL = "http://localhost:8080"
+const API_BASE_URL = "https://notesense-backend.onrender.com";
 
 // Create an axios instance with default config
 const api = axios.create({
