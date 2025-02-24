@@ -1,8 +1,8 @@
 import axios from "axios"
 import { clearAuthData } from './authService';
 
-// const API_BASE_URL = "http://localhost:8080"
-const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL = "http://localhost:8080"
+// const API_BASE_URL = "https://notesense-backend.onrender.com";
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -64,6 +64,7 @@ const noteService = {
   // Get all notes for a user
   getUserNotes: async (): Promise<Note[]> => {
     try {
+      console.log("API Base URL:", API_BASE_URL);
       const response = await api.get('/notes');
       console.log('Get notes response:', response.data); // Debug log
       
