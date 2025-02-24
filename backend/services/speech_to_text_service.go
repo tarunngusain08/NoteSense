@@ -23,7 +23,7 @@ func (s *SpeechToTextService) TranscribeAudio(audioPath string) (string, error) 
 	}
 
 	// print current working directory
-	pythonPath := os.Getenv("PYTHON_VENV_PATH")
+	pythonPath := os.Getenv("./venv/bin/python")
 	if pythonPath == "" {
 		return "", fmt.Errorf("PYTHON_VENV_PATH environment variable not set")
 	}
