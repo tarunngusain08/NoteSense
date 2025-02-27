@@ -74,8 +74,9 @@ Install the Postgres for your machine. And run the below commands
   psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE NoteSense TO postgres;"
 ```
 
-**Environment Variables
-Make sure your .env file is configured as follows:**
+**Environment Variables**
+
+**Make sure your .env file is configured as follows:**
 ```bash
   DB_USER=postgres    
   DB_PASSWORD=your_password
