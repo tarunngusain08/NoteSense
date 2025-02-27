@@ -66,6 +66,26 @@ NoteSense is a next-generation note-taking application designed for effortless o
   go run main.go
 ```
 
+#### **Postgres Setup**
+Install the Postgres for your machine. And run the below commands
+```bash
+  psql -U postgres -c "CREATE DATABASE NoteSense;"
+  psql -U postgres -c "CREATE USER postgres WITH PASSWORD 'your_password';"
+  psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE NoteSense TO postgres;"
+```
+
+**Environment Variables
+Make sure your .env file is configured as follows:**
+```bash
+  DB_USER=postgres    
+  DB_PASSWORD=your_password
+  DB_NAME=NoteSense
+  DB_HOST=localhost
+  DB_PORT=5432
+  JWT_SECRET=your_secret_key
+  PYTHON_VENV_PATH="/Users/radhakrishna/GolandProjects/NoteSense/backend/scripts/venv/bin/python"
+```
+
 ### **Running the Application**
 - Access the frontend at **http://localhost:3000**.
 - The backend API runs at **http://localhost:8080**.
@@ -75,8 +95,8 @@ NoteSense is a next-generation note-taking application designed for effortless o
   docker-compose down
   docker-compose up --build
 ```
-- Access the frontend at **http://localhost:3000**.
-- The backend API runs at **http://localhost:8080**.
+- Access the frontend at **http://localhost** 
+- The backend API runs at **http://localhost:8080**
 
 ## Contributing
 We welcome contributions! Follow these steps:
