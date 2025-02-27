@@ -91,6 +91,7 @@ Install the Postgres for your machine. And run the below commands
 - Access the frontend at **http://localhost:3000**.
 - The backend API runs at **http://localhost:8080**.
 
+
 ### **Setting and Running the App with docker-compose**
 ```bash
   docker-compose down
