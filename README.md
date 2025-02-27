@@ -70,6 +70,14 @@ NoteSense is a next-generation note-taking application designed for effortless o
 - Access the frontend at **http://localhost:3000**.
 - The backend API runs at **http://localhost:8080**.
 
+### **Setting and Running the App with docker-compose**
+```bash
+  docker-compose down
+  docker-compose up --build
+```
+- Access the frontend at **http://localhost:3000**.
+- The backend API runs at **http://localhost:8080**.
+
 ## Contributing
 We welcome contributions! Follow these steps:
 1. Fork the repository.
