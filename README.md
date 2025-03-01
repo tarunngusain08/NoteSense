@@ -41,6 +41,10 @@ NoteSense is a next-generation note-taking application designed for effortless o
 - PostgreSQL for reliable data storage.
 - JSONB for flexible, schema-free content management.
 
+## Architecture 
+<img width="1035" alt="Screenshot 2025-02-25 at 12 10 59 PM" src="https://github.com/user-attachments/assets/c19e409f-faf3-4e8c-8200-2a625543fdf2" />
+
+
 ## Getting Started
 
 ### **Prerequisites**
