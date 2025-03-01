@@ -1,5 +1,13 @@
 # NoteSense
 
+## Demo Video
+
+[![NoteSense Demo](demo_thumbnail.png)](https://youtu.be/PuIh7Fri-Zk)
+
+Watch a quick walkthrough of NoteSense's key features, showcasing its intuitive interface, note management capabilities, and AI-powered enhancements.
+
+**Note**: To view the demo, download the `Demo.mov` file from the repository.
+
 NoteSense is a next-generation note-taking application designed for effortless organization, seamless collaboration, and AI-powered enhancements. Whether you're a student, professional, or creative thinker, NoteSense transforms the way you capture and manage information. By blending the best features of apps like Evernote and OneNote while addressing common frustrations like cluttered interfaces and poor searchability, NoteSense offers a streamlined and intuitive experience.
 
 ## Key Features
@@ -92,7 +100,7 @@ Install the Postgres for your machine. And run the below commands
 - The backend API runs at **http://localhost:8080**.
 
 
-### **(Alternate method) Setting and Running the App with docker-compose**
+### **Setting and Running the App with docker-compose**
 ```bash
   docker-compose down
   docker-compose up --build
