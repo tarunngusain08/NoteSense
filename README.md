@@ -1,6 +1,6 @@
 # NoteSense
 
-## Demo Video
+## [Demo Video](https://youtu.be/PuIh7Fri-Zk)
 
 [![NoteSense Demo](demo_thumbnail.png)](https://youtu.be/PuIh7Fri-Zk)
 
